@@ -1,0 +1,653 @@
+// Quiz Cinema - logica do app (SPA estatica + Firebase)
+// Nenhum servidor proprio: autenticacao e dados ficam 100% no Firebase
+// (Authentication + Firestore). Veja README.md para configurar seu projeto.
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const EMAIL_DOMAIN = 'quizcinema.local';
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
+
+let currentUser = null; // objeto do Firebase Auth
+let currentUserDoc = null; // { username, isAdmin }
+let authReady = false;
+
+// ---------- Helpers ----------
+
+function usernameToEmail(username) {
+  return `${username.trim().toLowerCase()}@${EMAIL_DOMAIN}`;
+}
+
+function showOnly(viewId) {
+  const ids = [
+    'view-loading', 'view-login', 'view-register', 'view-dashboard',
+    'view-quiz', 'view-result', 'view-ranking', 'view-admin',
+  ];
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', id !== viewId);
+  });
+}
+
+function setError(elId, msg) {
+  const el = document.getElementById(elId);
+  if (!msg) {
+    el.classList.add('hidden');
+    el.textContent = '';
+  } else {
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+}
+
+function setSuccess(elId, msg) {
+  const el = document.getElementById(elId);
+  if (!msg) {
+    el.classList.add('hidden');
+    el.textContent = '';
+  } else {
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function authErrorMessage(err) {
+  const code = err && err.code;
+  const map = {
+    'auth/email-already-in-use': 'Esse usuário já existe.',
+    'auth/weak-password': 'Senha muito fraca (mínimo 6 caracteres).',
+    'auth/invalid-email': 'Usuário inválido.',
+    'auth/user-not-found': 'Usuário ou senha inválidos.',
+    'auth/wrong-password': 'Usuário ou senha inválidos.',
+    'auth/invalid-credential': 'Usuário ou senha inválidos.',
+    'auth/too-many-requests': 'Muitas tentativas. Aguarde um pouco e tente de novo.',
+  };
+  return map[code] || 'Ocorreu um erro. Tente novamente.';
+}
+
+// ---------- Nav ----------
+
+function renderNav() {
+  const nav = document.getElementById('nav-links');
+  if (currentUser && currentUserDoc) {
+    nav.innerHTML = `
+      <a href="#/">Quiz</a>
+      <a href="#/ranking">Ranking</a>
+      ${currentUserDoc.isAdmin ? '<a href="#/admin">Admin</a>' : ''}
+      <span class="muted">|</span>
+      <span class="muted">${escapeHtml(currentUserDoc.username)}</span>
+      <button class="linklike" id="logout-btn">Sair</button>
+    `;
+    document.getElementById('logout-btn').addEventListener('click', () => auth.signOut());
+  } else {
+    nav.innerHTML = `<a href="#/login">Entrar</a><a href="#/register">Cadastrar</a>`;
+  }
+}
+
+// ---------- Auth ----------
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setError('login-error', null);
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  try {
+    await auth.signInWithEmailAndPassword(usernameToEmail(username), password);
+    location.hash = '#/';
+  } catch (err) {
+    console.error(err);
+    setError('login-error', authErrorMessage(err));
+  }
+});
+
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setError('register-error', null);
+  const username = document.getElementById('register-username').value.trim();
+  const password = document.getElementById('register-password').value;
+  const confirm = document.getElementById('register-confirm').value;
+
+  if (!USERNAME_RE.test(username)) {
+    setError('register-error', 'Usuário deve ter 3 a 20 caracteres: letras, números ou _.');
+    return;
+  }
+  if (password.length < 6) {
+    setError('register-error', 'Senha precisa ter pelo menos 6 caracteres.');
+    return;
+  }
+  if (password !== confirm) {
+    setError('register-error', 'As senhas não conferem.');
+    return;
+  }
+
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(usernameToEmail(username), password);
+    await db.collection('users').doc(cred.user.uid).set({
+      username,
+      isAdmin: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    location.hash = '#/';
+  } catch (err) {
+    console.error(err);
+    setError('register-error', authErrorMessage(err));
+  }
+});
+
+async function fetchUserDoc(uid) {
+  const snap = await db.collection('users').doc(uid).get();
+  return snap.exists ? snap.data() : null;
+}
+
+auth.onAuthStateChanged(async (user) => {
+  currentUser = user;
+  currentUserDoc = user ? await fetchUserDoc(user.uid) : null;
+  authReady = true;
+  renderNav();
+  route();
+});
+
+// ---------- Dados: quizzes ----------
+
+async function fetchAllQuizzes() {
+  const snap = await db.collection('quizzes').orderBy('createdAt', 'desc').get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function fetchQuiz(quizId) {
+  const snap = await db.collection('quizzes').doc(quizId).get();
+  return snap.exists ? { id: snap.id, ...snap.data() } : null;
+}
+
+async function fetchUserResult(quizId, uid) {
+  const snap = await db.collection('quizzes').doc(quizId).collection('results').doc(uid).get();
+  return snap.exists ? snap.data() : null;
+}
+
+// ---------- Dashboard ----------
+
+async function loadDashboard() {
+  document.getElementById('dashboard-greeting').textContent = `Olá, ${currentUserDoc.username} 👋`;
+  const card = document.getElementById('dashboard-quiz-card');
+  card.innerHTML = '<p class="muted">Carregando...</p>';
+
+  const quizzes = await fetchAllQuizzes();
+  const openQuiz = quizzes.find((q) => q.status === 'open');
+  const closedQuizzes = quizzes.filter((q) => q.status === 'closed').slice(0, 5);
+
+  if (openQuiz) {
+    const myResult = await fetchUserResult(openQuiz.id, currentUser.uid);
+    if (myResult) {
+      card.innerHTML = `
+        <span class="badge open">ABERTO</span>
+        <h2 style="margin-top:10px;">${escapeHtml(openQuiz.title)}</h2>
+        <p class="muted">Tema: ${escapeHtml(openQuiz.theme)}</p>
+        <p>Você já respondeu esse quiz. Aguarde os outros votarem!</p>
+        <a href="#/quiz/${openQuiz.id}/resultado" class="btn secondary">Ver meu resultado</a>
+      `;
+    } else {
+      card.innerHTML = `
+        <span class="badge open">ABERTO</span>
+        <h2 style="margin-top:10px;">${escapeHtml(openQuiz.title)}</h2>
+        <p class="muted">Tema: ${escapeHtml(openQuiz.theme)}</p>
+        <p>Tem um quiz esperando seu palpite.</p>
+        <a href="#/quiz/${openQuiz.id}" class="btn">Responder agora</a>
+      `;
+    }
+  } else {
+    card.innerHTML = `<p>Nenhum quiz aberto no momento. Assim que sair um novo, ele aparece aqui.</p>`;
+  }
+
+  const closedCard = document.getElementById('dashboard-closed-card');
+  const closedList = document.getElementById('dashboard-closed-list');
+  if (closedQuizzes.length > 0) {
+    closedCard.classList.remove('hidden');
+    closedList.innerHTML = closedQuizzes.map((q) => `
+      <div class="quiz-list-item">
+        <div>
+          <strong>${escapeHtml(q.title)}</strong>
+          <div class="muted" style="font-size:0.85rem;">Tema: ${escapeHtml(q.theme)}</div>
+        </div>
+        <a href="#/quiz/${q.id}/resultado" class="btn small secondary">Ver</a>
+      </div>
+    `).join('');
+  } else {
+    closedCard.classList.add('hidden');
+  }
+}
+
+// ---------- Responder quiz ----------
+
+async function loadQuizTake(quizId) {
+  setError('quiz-error', null);
+  const quiz = await fetchQuiz(quizId);
+  if (!quiz) {
+    document.getElementById('quiz-questions').innerHTML = '<p>Quiz não encontrado.</p>';
+    return;
+  }
+  if (quiz.status !== 'open') {
+    location.hash = `#/quiz/${quizId}/resultado`;
+    return;
+  }
+  const already = await fetchUserResult(quizId, currentUser.uid);
+  if (already) {
+    location.hash = `#/quiz/${quizId}/resultado`;
+    return;
+  }
+
+  document.getElementById('quiz-title').textContent = quiz.title;
+  document.getElementById('quiz-theme').textContent = `Tema: ${quiz.theme}`;
+
+  const container = document.getElementById('quiz-questions');
+  container.innerHTML = quiz.questions.map((q, qi) => `
+    <div class="question-block">
+      <h3>${qi + 1}. ${escapeHtml(q.text)}</h3>
+      ${q.options.map((opt, oi) => `
+        <label class="option-row">
+          <input type="radio" name="q_${qi}" value="${oi}" required>
+          <span>${escapeHtml(opt)}</span>
+        </label>
+      `).join('')}
+    </div>
+  `).join('');
+
+  const form = document.getElementById('quiz-form');
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    setError('quiz-error', null);
+
+    const chosen = quiz.questions.map((q, qi) => {
+      const input = form.querySelector(`input[name="q_${qi}"]:checked`);
+      return input ? Number(input.value) : null;
+    });
+
+    if (chosen.some((c) => c === null)) {
+      setError('quiz-error', 'Responda todas as perguntas antes de enviar.');
+      return;
+    }
+
+    let correctCount = 0;
+    quiz.questions.forEach((q, qi) => {
+      if (chosen[qi] === q.correct) correctCount += 1;
+    });
+    const total = quiz.questions.length;
+    const percentage = Math.round((correctCount / total) * 1000) / 10;
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+
+    try {
+      await db.collection('quizzes').doc(quizId).collection('results').doc(currentUser.uid).set({
+        username: currentUserDoc.username,
+        theme: quiz.theme,
+        quizTitle: quiz.title,
+        chosen,
+        correctCount,
+        total,
+        percentage,
+        submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      location.hash = `#/quiz/${quizId}/resultado`;
+    } catch (err) {
+      console.error(err);
+      setError('quiz-error', 'Erro ao enviar suas respostas. Tente novamente.');
+      submitBtn.disabled = false;
+    }
+  };
+}
+
+// ---------- Resultado individual ----------
+
+async function loadResult(quizId) {
+  const quiz = await fetchQuiz(quizId);
+  if (!quiz) {
+    document.getElementById('result-content').innerHTML = '<div class="card"><p>Quiz não encontrado.</p></div>';
+    return;
+  }
+
+  document.getElementById('result-title').textContent = quiz.title;
+  document.getElementById('result-theme').innerHTML = `
+    Tema: ${escapeHtml(quiz.theme)} ·
+    <span class="badge ${quiz.status === 'open' ? 'open' : 'closed'}">${quiz.status === 'open' ? 'ABERTO' : 'ENCERRADO'}</span>
+  `;
+
+  const myResult = await fetchUserResult(quizId, currentUser.uid);
+  const content = document.getElementById('result-content');
+
+  if (!myResult) {
+    content.innerHTML = `
+      <div class="card">
+        <p>Você ainda não respondeu esse quiz.</p>
+        ${quiz.status === 'open' ? `<a href="#/quiz/${quizId}" class="btn">Responder agora</a>` : ''}
+      </div>
+    `;
+    return;
+  }
+
+  const questionsHtml = quiz.questions.map((q, qi) => {
+    const userOptIdx = myResult.chosen[qi];
+    const optsHtml = q.options.map((opt, oi) => {
+      let cls = '';
+      if (oi === q.correct) cls = 'correct';
+      else if (oi === userOptIdx) cls = 'wrong-chosen';
+      return `
+        <div class="option-row ${cls}">
+          <span>${escapeHtml(opt)}</span>
+          ${oi === q.correct ? '<span class="muted" style="margin-left:auto;">✓ correta</span>' : ''}
+          ${oi !== q.correct && oi === userOptIdx ? '<span class="muted" style="margin-left:auto;">sua resposta</span>' : ''}
+        </div>
+      `;
+    }).join('');
+    return `<div class="question-block"><h3>${qi + 1}. ${escapeHtml(q.text)}</h3>${optsHtml}</div>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div class="card score-hero">
+      <div class="pct">${myResult.percentage}%</div>
+      <p class="muted">${myResult.correctCount} de ${myResult.total} corretas</p>
+    </div>
+    <div class="card">
+      <h2>Gabarito</h2>
+      ${questionsHtml}
+    </div>
+  `;
+}
+
+// ---------- Ranking ----------
+
+function buildRanking(rows) {
+  const byUser = new Map();
+  rows.forEach((r) => {
+    if (!byUser.has(r.username)) {
+      byUser.set(r.username, { username: r.username, quizzes: 0, sum: 0 });
+    }
+    const entry = byUser.get(r.username);
+    entry.quizzes += 1;
+    entry.sum += Number(r.percentage);
+  });
+  const ranking = Array.from(byUser.values()).map((e) => ({
+    username: e.username,
+    quizzes: e.quizzes,
+    average: Math.round((e.sum / e.quizzes) * 10) / 10,
+  }));
+  ranking.sort((a, b) => b.average - a.average || b.quizzes - a.quizzes);
+  return ranking;
+}
+
+function renderRankingTable(bodyId, ranking) {
+  const body = document.getElementById(bodyId);
+  body.innerHTML = ranking.map((r, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${escapeHtml(r.username)}</td>
+      <td>${r.quizzes}</td>
+      <td>${r.average}%</td>
+    </tr>
+  `).join('');
+}
+
+let rankingRowsCache = [];
+
+async function loadRanking() {
+  const snap = await db.collectionGroup('results').get();
+  const rows = snap.docs.map((d) => d.data());
+  rankingRowsCache = rows;
+
+  const empty = document.getElementById('ranking-empty');
+  const content = document.getElementById('ranking-content');
+
+  if (rows.length === 0) {
+    empty.classList.remove('hidden');
+    content.classList.add('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  content.classList.remove('hidden');
+
+  renderRankingTable('ranking-overall-body', buildRanking(rows));
+
+  const themes = Array.from(new Set(rows.map((r) => r.theme))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const select = document.getElementById('ranking-theme-select');
+  const prevValue = select.value;
+  select.innerHTML = '<option value="">Escolha um tema...</option>' +
+    themes.map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  select.value = themes.includes(prevValue) ? prevValue : '';
+
+  renderThemeRanking();
+}
+
+function renderThemeRanking() {
+  const select = document.getElementById('ranking-theme-select');
+  const theme = select.value;
+  const resultDiv = document.getElementById('ranking-theme-result');
+  if (!theme) {
+    resultDiv.innerHTML = '';
+    return;
+  }
+  const filtered = rankingRowsCache.filter((r) => r.theme === theme);
+  const ranking = buildRanking(filtered);
+  resultDiv.innerHTML = `
+    <h3>Tema: ${escapeHtml(theme)}</h3>
+    <table class="ranking">
+      <thead><tr><th>#</th><th>Jogador</th><th>Quizzes</th><th>Média</th></tr></thead>
+      <tbody>
+        ${ranking.map((r, i) => `
+          <tr><td>${i + 1}</td><td>${escapeHtml(r.username)}</td><td>${r.quizzes}</td><td>${r.average}%</td></tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.getElementById('ranking-theme-select').addEventListener('change', renderThemeRanking);
+
+// ---------- Admin ----------
+
+async function loadAdmin() {
+  setError('admin-error', null);
+  setSuccess('admin-success', null);
+  await renderAdminQuizList();
+}
+
+async function renderAdminQuizList() {
+  const list = document.getElementById('admin-quiz-list');
+  list.innerHTML = '<p class="muted">Carregando...</p>';
+
+  const quizzes = await fetchAllQuizzes();
+  if (quizzes.length === 0) {
+    list.innerHTML = '<p class="muted">Nenhum quiz criado ainda.</p>';
+    return;
+  }
+
+  const rows = await Promise.all(quizzes.map(async (q) => {
+    const resultsSnap = await db.collection('quizzes').doc(q.id).collection('results').get();
+    return { ...q, respondents: resultsSnap.size };
+  }));
+
+  list.innerHTML = rows.map((q) => `
+    <div class="quiz-list-item">
+      <div>
+        <strong>${escapeHtml(q.title)}</strong>
+        <span class="badge ${q.status === 'open' ? 'open' : 'closed'}">${q.status === 'open' ? 'ABERTO' : 'ENCERRADO'}</span>
+        <div class="muted" style="font-size:0.85rem;">
+          Tema: ${escapeHtml(q.theme)} · ${q.questions.length} perguntas · ${q.respondents} responderam
+        </div>
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <a href="#/quiz/${q.id}/resultado" class="btn small secondary">Ver</a>
+        ${q.status === 'open'
+          ? `<button class="btn small secondary" data-action="close" data-id="${q.id}">Encerrar</button>`
+          : `<button class="btn small secondary" data-action="reopen" data-id="${q.id}">Reabrir</button>`}
+        <button class="btn small danger" data-action="delete" data-id="${q.id}">Apagar</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('button[data-action]').forEach((btn) => {
+    btn.addEventListener('click', () => handleAdminQuizAction(btn.dataset.action, btn.dataset.id));
+  });
+}
+
+async function handleAdminQuizAction(action, quizId) {
+  setError('admin-error', null);
+  setSuccess('admin-success', null);
+  try {
+    if (action === 'close') {
+      await db.collection('quizzes').doc(quizId).update({ status: 'closed' });
+    } else if (action === 'reopen') {
+      await db.collection('quizzes').doc(quizId).update({ status: 'open' });
+    } else if (action === 'delete') {
+      if (!confirm('Apagar este quiz e todas as respostas?')) return;
+      const resultsSnap = await db.collection('quizzes').doc(quizId).collection('results').get();
+      const batch = db.batch();
+      resultsSnap.docs.forEach((d) => batch.delete(d.ref));
+      batch.delete(db.collection('quizzes').doc(quizId));
+      await batch.commit();
+    }
+    await renderAdminQuizList();
+  } catch (err) {
+    console.error(err);
+    setError('admin-error', 'Erro ao executar ação: ' + err.message);
+  }
+}
+
+document.getElementById('admin-import-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setError('admin-error', null);
+  setSuccess('admin-success', null);
+
+  const raw = document.getElementById('admin-json').value;
+  const closeOthers = document.getElementById('admin-close-others').checked;
+
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (err) {
+    setError('admin-error', 'JSON inválido: ' + err.message);
+    return;
+  }
+
+  if (!data.theme || !data.title || !Array.isArray(data.questions) || data.questions.length === 0) {
+    setError('admin-error', 'JSON precisa ter theme, title e uma lista questions com pelo menos 1 pergunta.');
+    return;
+  }
+  for (let i = 0; i < data.questions.length; i++) {
+    const q = data.questions[i];
+    if (!q.text || !Array.isArray(q.options) || q.options.length < 2) {
+      setError('admin-error', `Pergunta ${i + 1} inválida: precisa de "text" e ao menos 2 "options".`);
+      return;
+    }
+    if (typeof q.correct !== 'number' || q.correct < 0 || q.correct >= q.options.length) {
+      setError('admin-error', `Pergunta ${i + 1} inválida: "correct" precisa ser o índice (0, 1, 2...) da opção certa.`);
+      return;
+    }
+  }
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+
+  try {
+    if (closeOthers) {
+      const quizzes = await fetchAllQuizzes();
+      const openOnes = quizzes.filter((q) => q.status === 'open');
+      if (openOnes.length > 0) {
+        const batch = db.batch();
+        openOnes.forEach((q) => batch.update(db.collection('quizzes').doc(q.id), { status: 'closed' }));
+        await batch.commit();
+      }
+    }
+
+    await db.collection('quizzes').add({
+      theme: data.theme,
+      title: data.title,
+      status: 'open',
+      questions: data.questions.map((q) => ({ text: q.text, options: q.options, correct: q.correct })),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    document.getElementById('admin-json').value = '';
+    setSuccess('admin-success', 'Quiz criado com sucesso!');
+    await renderAdminQuizList();
+  } catch (err) {
+    console.error(err);
+    setError('admin-error', 'Erro ao salvar: ' + err.message);
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+// ---------- Router ----------
+
+function route() {
+  if (!authReady) {
+    showOnly('view-loading');
+    return;
+  }
+
+  const hash = location.hash || '#/';
+  const isAuthed = !!currentUser;
+
+  if (!isAuthed) {
+    if (hash.startsWith('#/register')) {
+      showOnly('view-register');
+      return;
+    }
+    showOnly('view-login');
+    return;
+  }
+
+  if (hash.startsWith('#/login') || hash.startsWith('#/register')) {
+    location.hash = '#/';
+    return;
+  }
+
+  const parts = hash.replace(/^#\//, '').split('/').filter(Boolean);
+
+  if (parts.length === 0) {
+    showOnly('view-dashboard');
+    loadDashboard();
+    return;
+  }
+
+  if (parts[0] === 'ranking') {
+    showOnly('view-ranking');
+    loadRanking();
+    return;
+  }
+
+  if (parts[0] === 'admin') {
+    if (!currentUserDoc || !currentUserDoc.isAdmin) {
+      location.hash = '#/';
+      return;
+    }
+    showOnly('view-admin');
+    loadAdmin();
+    return;
+  }
+
+  if (parts[0] === 'quiz' && parts[1]) {
+    const quizId = parts[1];
+    if (parts[2] === 'resultado') {
+      showOnly('view-result');
+      loadResult(quizId);
+      return;
+    }
+    showOnly('view-quiz');
+    loadQuizTake(quizId);
+    return;
+  }
+
+  location.hash = '#/';
+}
+
+window.addEventListener('hashchange', route);
+showOnly('view-loading');
