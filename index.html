@@ -6,7 +6,7 @@
 <title>Devon Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Anton&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -47,6 +47,8 @@
       <form id="register-form">
         <label for="register-username">Usuário</label>
         <input type="text" id="register-username" required autofocus>
+        <label for="register-displayname">Nome de exibição (opcional)</label>
+        <input type="text" id="register-displayname" placeholder="Como seu nome aparece pro grupo">
         <label for="register-password">Senha</label>
         <input type="password" id="register-password" required>
         <label for="register-confirm">Confirmar senha</label>
@@ -59,16 +61,10 @@
 
   <!-- DASHBOARD -->
   <div id="view-dashboard" class="hidden">
-    <h1 id="dashboard-greeting">Olá 👋</h1>
+    <h1 id="dashboard-greeting">Olá</h1>
 
     <div id="dashboard-carousel-slot">
       <!-- preenchido via JS: carrossel com todos os quizzes (atual colorido e centralizado, encerrados em P&B) -->
-    </div>
-
-    <div class="card">
-      <h2>Ranking</h2>
-      <p class="muted">Ranking geral e por tema de todos os quizzes já jogados.</p>
-      <a href="#/ranking" class="btn secondary">Abrir ranking</a>
     </div>
   </div>
 
