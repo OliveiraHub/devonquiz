@@ -536,16 +536,19 @@ function buildRanking(rows) {
 
 function renderRankingTable(ranking) {
   const body = document.getElementById('ranking-body');
-  body.innerHTML = ranking.map((r, i) => `
+  body.innerHTML = ranking.map((r, i) => {
+    const firstName = r.displayName.trim().split(/\s+/)[0];
+    return `
     <tr>
       <td>${i + 1}</td>
-      <td>${escapeHtml(r.displayName)}</td>
+      <td><span class="dn-full">${escapeHtml(r.displayName)}</span><span class="dn-short">${escapeHtml(firstName)}</span></td>
       <td>${r.quizzes}</td>
       <td>${r.totalQuestions}</td>
       <td>${r.totalCorrect}</td>
       <td>${r.average}%</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 let rankingRowsCache = [];
