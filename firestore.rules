@@ -13,12 +13,15 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // Perfil de cada usuario (username, isAdmin)
+    // Perfil de cada usuario (username, displayName, isAdmin)
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
-      // isAdmin so pode ser alterado manualmente pelo Firebase Console
-      allow update, delete: if false;
+      // cada usuario so pode alterar o proprio displayName; username e isAdmin
+      // continuam so editaveis manualmente pelo Firebase Console
+      allow update: if isSignedIn() && request.auth.uid == userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName']);
+      allow delete: if false;
     }
 
     // Quizzes e as respostas de cada usuario
@@ -35,6 +38,14 @@ service cloud.firestore {
         // resultado enviado nao pode ser alterado (evita fraude), so admin corrige/apaga
         allow update, delete: if isAdmin();
       }
+    }
+
+    // A regra aninhada acima so autoriza acesso direto a uma subcolecao
+    // conhecida (quizzes/{id}/results). A tela de Ranking usa uma consulta
+    // collectionGroup('results') pra somar respostas de TODOS os quizzes de
+    // uma vez — isso exige uma regra separada no formato {path=**}.
+    match /{path=**}/results/{userId} {
+      allow read: if isSignedIn();
     }
   }
 }

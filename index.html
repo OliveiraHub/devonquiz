@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Anton&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -112,21 +112,9 @@
       <h2 id="admin-form-title">Criar novo quiz</h2>
       <p class="muted">
         Peça pro Claude gerar as perguntas (ex: "gera 8 perguntas sobre filmes do Tarantino em JSON pro Devon Quiz")
-        e cole o JSON abaixo no formato:
+        e cole o JSON abaixo. "imageUrl" é a capa vertical (pôster); "backdropUrl" é opcional — uma imagem horizontal
+        pro banner das telas de responder/resultado, pra não ficar cortando o pôster.
       </p>
-      <pre class="example">{
-  "theme": "Diretores",
-  "title": "Tarantino",
-  "imageUrl": "https://exemplo.com/capa-tarantino.jpg",
-  "questions": [
-    {
-      "text": "Qual filme tem a cena da dança do twist?",
-      "options": ["Pulp Fiction", "Kill Bill", "Reservoir Dogs", "Django Livre"],
-      "correct": 0
-    }
-  ]
-}</pre>
-      <p class="muted" style="font-size:0.85rem;">"title" é o nome que aparece grande no pôster (ex: "Tarantino"), sem prefixo "Quiz:". "theme" é a categoria usada pro filtro do ranking (ex: "Diretores", "Décadas") — pode repetir o mesmo tema em vários quizzes. "correct" é o índice (começando em 0) da opção certa. "imageUrl" é opcional — um link direto pra uma imagem (capa/pôster); se não passar, o app gera uma capa colorida automaticamente.</p>
       <p class="muted hidden" id="admin-edit-warning" style="font-size:0.85rem; color:#ffb3b8;">
         Editando um quiz que já tem respostas: se você mudar a ordem ou o texto das opções, o gabarito de quem já respondeu pode não bater mais. Prefira só corrigir texto/imagem quando já tiver gente que votou.
       </p>
@@ -158,7 +146,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
-<script src="js/firebase-config.js"></script>
-<script src="js/app.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

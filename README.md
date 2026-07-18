@@ -15,7 +15,7 @@ só HTML/CSS/JS estático.
 
 ## 2. Colar a configuração no app
 
-Abra `js/firebase-config.js` e substitua os valores de exemplo pelos que você copiou:
+Abra `firebase-config.js` e substitua os valores de exemplo pelos que você copiou:
 
 ```js
 const firebaseConfig = {
@@ -65,7 +65,7 @@ Repita só o cadastro (sem o passo do `isAdmin`) para cada amigo que for jogar.
 
 ## 7. Colocar o app no ar
 
-O app é só arquivos estáticos (`index.html`, `css/`, `js/`) — dá pra hospedar em qualquer
+O app é só arquivos estáticos (`index.html`, `style.css`, `app.js`) — dá pra hospedar em qualquer
 lugar gratuito. O mais simples, já que você está usando Firebase, é o **Firebase Hosting**:
 
 ```bash
@@ -109,6 +109,7 @@ Formato esperado do JSON:
   "theme": "Diretores",
   "title": "Tarantino",
   "imageUrl": "https://exemplo.com/capa-tarantino.jpg",
+  "backdropUrl": "https://exemplo.com/banner-tarantino.jpg",
   "questions": [
     {
       "text": "Qual filme tem a cena da dança do twist?",
@@ -122,10 +123,13 @@ Formato esperado do JSON:
 `title` é o nome que aparece grande no pôster (sem prefixo "Quiz:"). `theme` é a categoria
 usada no filtro do ranking (ex: "Diretores", "Décadas") — vale repetir o mesmo tema em vários
 quizzes pra agrupar no ranking. `correct` é o índice (começando em 0) da opção certa.
-`imageUrl` é opcional: um link direto
-pra uma imagem (a "capa" do quiz, estilo pôster de filme, mostrada no banner e no carrossel
-de quizzes encerrados). Se você não passar `imageUrl`, o app gera automaticamente uma capa
-colorida com o nome do tema — não fica sem capa nenhuma.
+`imageUrl` é opcional: um link direto pra uma imagem vertical, estilo pôster de filme (usada
+no carrossel de quizzes e na miniatura do admin). `backdropUrl` também é opcional: um link
+pra uma imagem horizontal (paisagem), usada só no banner das telas de responder/resultado —
+como o pôster é vertical, ele fica cortado quando esticado num banner horizontal; se quiser
+evitar isso, passe uma imagem horizontal própria em `backdropUrl`. Se não passar nenhuma das
+duas, o app gera automaticamente uma capa colorida com o nome do tema — não fica sem capa
+nenhuma.
 
 Dica pra achar um link de imagem que funcione: peça pro Claude buscar (ele te dá a URL
 direta de uma imagem, geralmente do Wikimedia Commons, que pode ser usada assim sem
@@ -147,8 +151,8 @@ sozinha no navegador (clique com o botão direito numa imagem > "Copiar endereç
 
 ```
 index.html              tela única (SPA) com login, quiz, ranking e admin
-css/style.css            estilo
-js/firebase-config.js    configuração do SEU projeto Firebase (edite este arquivo)
-js/app.js                toda a lógica: auth, Firestore, ranking, admin
+style.css                estilo
+firebase-config.js       configuração do SEU projeto Firebase (edite este arquivo)
+app.js                   toda a lógica: auth, Firestore, ranking, admin
 firestore.rules          regras de segurança para colar no Firebase Console
 ```
