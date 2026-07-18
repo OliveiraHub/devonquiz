@@ -93,49 +93,7 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
 .btn.small { padding: 7px 14px; font-size: 0.82rem; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ---------- Hero (quiz aberto) ---------- */
-
-.hero-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 18px 0 30px;
-}
-
-.hero-poster {
-  position: relative;
-  width: min(260px, 62vw);
-  aspect-ratio: 2 / 3;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background-size: cover;
-  background-position: center;
-  box-shadow: 0 16px 36px rgba(0,0,0,0.55);
-}
-.hero-poster::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.4) 55%, rgba(0,0,0,0.05) 100%);
-}
-.hero-poster .badge { position: absolute; top: 12px; left: 12px; z-index: 2; }
-.hero-poster .poster-fallback .icon { font-size: 2.6rem; }
-.hero-poster .poster-fallback .title { font-size: 1.7rem; }
-
-.hero-poster-content {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-  padding: 18px 16px; text-align: center;
-}
-.hero-poster-content .hero-title {
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 1.7rem;
-  line-height: 1.05;
-  margin: 0 0 4px;
-  letter-spacing: 0.5px;
-}
-.hero-poster-content .hero-theme { color: #ddd; margin: 0; font-size: 0.82rem; }
-
-.hero-actions { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+/* ---------- Carrossel de quizzes (dashboard) ---------- */
 
 .hero-empty {
   border-radius: var(--radius-lg);
@@ -146,52 +104,90 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   margin: 18px 0 26px;
 }
 
-/* ---------- Poster rows ---------- */
+.carousel-wrap { margin: 14px 0 4px; }
 
-.row-title { font-size: 1.1rem; font-weight: 700; margin: 8px 0 14px; }
-
-.poster-row {
+.carousel {
   display: flex;
-  gap: 12px;
+  align-items: flex-end;
+  gap: 14px;
   overflow-x: auto;
-  padding: 4px 2px 14px;
-  margin-bottom: 22px;
   scroll-snap-type: x proximity;
+  padding: 10px 32vw 16px;
 }
-.poster-row::-webkit-scrollbar { display: none; }
-.poster-row { scrollbar-width: none; -ms-overflow-style: none; }
+.carousel::-webkit-scrollbar { display: none; }
+.carousel { scrollbar-width: none; -ms-overflow-style: none; }
 
-.poster-card {
+.carousel-card {
   flex: 0 0 auto;
-  width: 132px;
-  aspect-ratio: 2 / 3;
-  border-radius: var(--radius);
   position: relative;
+  border-radius: var(--radius);
   overflow: hidden;
   background-size: cover;
   background-position: center;
   cursor: pointer;
-  scroll-snap-align: start;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  scroll-snap-align: center;
   border: 1px solid var(--border);
+  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
 }
-.poster-card:hover { transform: scale(1.06) translateY(-2px); box-shadow: 0 14px 28px rgba(0,0,0,0.55); z-index: 2; }
+
+.carousel-card.closed {
+  width: 128px;
+  aspect-ratio: 2 / 3;
+  filter: grayscale(1) brightness(0.7);
+  opacity: 0.85;
+}
+.carousel-card.closed:hover {
+  filter: grayscale(0) brightness(1);
+  opacity: 1;
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.5);
+  z-index: 2;
+}
+
+.carousel-card.current {
+  width: 210px;
+  aspect-ratio: 2 / 3;
+  box-shadow: 0 16px 36px rgba(0,0,0,0.55);
+}
+.carousel-card.current:hover { transform: translateY(-4px); }
+
+.carousel-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0) 70%);
+}
+.carousel-card .badge { position: absolute; top: 8px; left: 8px; z-index: 3; }
+
+.carousel-caption { text-align: center; padding: 4px 16px 6px; }
+.carousel-caption .hero-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 1.7rem;
+  line-height: 1.05;
+  margin: 6px 0 4px;
+  letter-spacing: 0.5px;
+}
+.carousel-caption .hero-theme { color: #ddd; margin: 0 0 14px; font-size: 0.85rem; }
+.carousel-caption .hero-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
 
 .poster-fallback {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 10px; text-align: center;
+  z-index: 1;
 }
-.poster-fallback .icon { font-size: 1.8rem; margin-bottom: 8px; opacity: 0.85; }
+.poster-fallback .icon { font-size: 1.6rem; margin-bottom: 6px; opacity: 0.85; }
 .poster-fallback .title {
   font-family: "Bebas Neue", sans-serif;
-  font-size: 1.15rem;
+  font-size: 1rem;
   line-height: 1.05;
   letter-spacing: 0.5px;
   color: #fff;
   text-shadow: 0 2px 6px rgba(0,0,0,0.5);
 }
+.carousel-card.current .poster-fallback .icon { font-size: 2.4rem; }
+.carousel-card.current .poster-fallback .title { font-size: 1.5rem; }
 
 .poster-overlay {
   position: absolute; left: 0; right: 0; bottom: 0;
