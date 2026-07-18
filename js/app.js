@@ -60,6 +60,107 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+// ---------- Pôsteres (imagem do quiz ou capa gerada) ----------
+
+const POSTER_GRADIENTS = [
+  'linear-gradient(135deg, #8E0E00, #1F1C18)',
+  'linear-gradient(135deg, #0F2027, #203A43, #2C5364)',
+  'linear-gradient(135deg, #654ea3, #7d3ac1)',
+  'linear-gradient(135deg, #16222A, #3A6073)',
+  'linear-gradient(135deg, #3a1c71, #d76d77, #ffaf7b)',
+  'linear-gradient(135deg, #7f0000, #37000a)',
+  'linear-gradient(135deg, #0f0c29, #302b63, #24243e)',
+  'linear-gradient(135deg, #360033, #0b8793)',
+];
+
+function hashString(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
+function posterGradient(seedStr) {
+  const idx = hashString(String(seedStr || 'x')) % POSTER_GRADIENTS.length;
+  return POSTER_GRADIENTS[idx];
+}
+
+// remove caracteres que quebrariam a sintaxe de url("...") em CSS
+function safeCssUrl(url) {
+  return String(url).replace(/["'()\\]/g, '');
+}
+
+function posterBackgroundInline(quiz) {
+  if (quiz.imageUrl) {
+    return `background-image: url("${safeCssUrl(quiz.imageUrl)}");`;
+  }
+  return `background-image: ${posterGradient(quiz.theme || quiz.title || quiz.id)};`;
+}
+
+// card grande (fileira de pôsteres / lista de encerrados)
+function renderPosterCardHtml(quiz) {
+  const hasImage = !!quiz.imageUrl;
+  const style = posterBackgroundInline(quiz);
+  const inner = hasImage
+    ? `<div class="poster-overlay"><div class="title">${escapeHtml(quiz.title)}</div></div>`
+    : `<div class="poster-fallback"><div class="icon">🎬</div><div class="title">${escapeHtml(quiz.theme || quiz.title)}</div></div>`;
+  return `<div class="poster-card" style="${style}" data-goto="#/quiz/${quiz.id}/resultado">${inner}</div>`;
+}
+
+// thumbnail pequena (lista do admin)
+function renderThumbHtml(quiz) {
+  const hasImage = !!quiz.imageUrl;
+  const style = posterBackgroundInline(quiz);
+  const inner = hasImage ? '' : `<div class="poster-fallback"><div class="icon">🎬</div></div>`;
+  return `<div class="thumb" style="${style}">${inner}</div>`;
+}
+
+// pôster grande vertical (hero do dashboard, quando ha quiz aberto)
+function renderHeroHtml(quiz, alreadyAnswered) {
+  const hasImage = !!quiz.imageUrl;
+  const style = posterBackgroundInline(quiz);
+  const actionHtml = alreadyAnswered
+    ? `<a href="#/quiz/${quiz.id}/resultado" class="btn secondary">Ver meu resultado</a>`
+    : `<a href="#/quiz/${quiz.id}" class="btn">▶ Responder agora</a>`;
+  const fallbackHtml = hasImage
+    ? ''
+    : `<div class="poster-fallback"><div class="icon">🎬</div></div>`;
+  return `
+    <div class="hero-wrap">
+      <div class="hero-poster" style="${style}">
+        <span class="badge open">ABERTO</span>
+        ${fallbackHtml}
+        <div class="hero-poster-content">
+          <h2 class="hero-title">${escapeHtml(quiz.title)}</h2>
+          <p class="hero-theme">Tema: ${escapeHtml(quiz.theme)}</p>
+        </div>
+      </div>
+      <div class="hero-actions">${actionHtml}</div>
+    </div>
+  `;
+}
+
+// banner menor (topo das telas de responder/resultado)
+function renderBackdropHtml(quiz, badgeHtml) {
+  const style = posterBackgroundInline(quiz);
+  return `
+    <div class="backdrop" style="${style}">
+      <div class="backdrop-content">
+        ${badgeHtml || ''}
+        <h1>${escapeHtml(quiz.title)}</h1>
+        <p class="muted">Tema: ${escapeHtml(quiz.theme)}</p>
+      </div>
+    </div>
+  `;
+}
+
+function bindGotoHandlers(root) {
+  (root || document).querySelectorAll('[data-goto]').forEach((el) => {
+    el.addEventListener('click', () => { location.hash = el.dataset.goto; });
+  });
+}
+
 function authErrorMessage(err) {
   const code = err && err.code;
   const map = {
@@ -177,58 +278,38 @@ async function fetchUserResult(quizId, uid) {
 
 async function loadDashboard() {
   document.getElementById('dashboard-greeting').textContent = `Olá, ${currentUserDoc.username} 👋`;
-  const card = document.getElementById('dashboard-quiz-card');
-  card.innerHTML = '<p class="muted">Carregando...</p>';
+
+  const heroSlot = document.getElementById('dashboard-hero-slot');
+  const rowSlot = document.getElementById('dashboard-closed-row-slot');
+  heroSlot.innerHTML = '<p class="muted">Carregando...</p>';
+  rowSlot.innerHTML = '';
 
   const quizzes = await fetchAllQuizzes();
   const openQuiz = quizzes.find((q) => q.status === 'open');
-  const closedQuizzes = quizzes.filter((q) => q.status === 'closed').slice(0, 5);
+  const closedQuizzes = quizzes.filter((q) => q.status === 'closed');
 
   if (openQuiz) {
     const myResult = await fetchUserResult(openQuiz.id, currentUser.uid);
-    if (myResult) {
-      card.innerHTML = `
-        <span class="badge open">ABERTO</span>
-        <h2 style="margin-top:10px;">${escapeHtml(openQuiz.title)}</h2>
-        <p class="muted">Tema: ${escapeHtml(openQuiz.theme)}</p>
-        <p>Você já respondeu esse quiz. Aguarde os outros votarem!</p>
-        <a href="#/quiz/${openQuiz.id}/resultado" class="btn secondary">Ver meu resultado</a>
-      `;
-    } else {
-      card.innerHTML = `
-        <span class="badge open">ABERTO</span>
-        <h2 style="margin-top:10px;">${escapeHtml(openQuiz.title)}</h2>
-        <p class="muted">Tema: ${escapeHtml(openQuiz.theme)}</p>
-        <p>Tem um quiz esperando seu palpite.</p>
-        <a href="#/quiz/${openQuiz.id}" class="btn">Responder agora</a>
-      `;
-    }
+    heroSlot.innerHTML = renderHeroHtml(openQuiz, !!myResult);
   } else {
-    card.innerHTML = `<p>Nenhum quiz aberto no momento. Assim que sair um novo, ele aparece aqui.</p>`;
+    heroSlot.innerHTML = `<div class="hero-empty"><p>Nenhum quiz aberto no momento. Assim que sair um novo, ele aparece aqui.</p></div>`;
   }
 
-  const closedCard = document.getElementById('dashboard-closed-card');
-  const closedList = document.getElementById('dashboard-closed-list');
   if (closedQuizzes.length > 0) {
-    closedCard.classList.remove('hidden');
-    closedList.innerHTML = closedQuizzes.map((q) => `
-      <div class="quiz-list-item">
-        <div>
-          <strong>${escapeHtml(q.title)}</strong>
-          <div class="muted" style="font-size:0.85rem;">Tema: ${escapeHtml(q.theme)}</div>
-        </div>
-        <a href="#/quiz/${q.id}/resultado" class="btn small secondary">Ver</a>
-      </div>
-    `).join('');
-  } else {
-    closedCard.classList.add('hidden');
+    rowSlot.innerHTML = `
+      <div class="row-title">Quizzes encerrados</div>
+      <div class="poster-row">${closedQuizzes.map(renderPosterCardHtml).join('')}</div>
+    `;
   }
+
+  bindGotoHandlers();
 }
 
 // ---------- Responder quiz ----------
 
 async function loadQuizTake(quizId) {
   setError('quiz-error', null);
+  document.getElementById('quiz-backdrop-slot').innerHTML = '';
   const quiz = await fetchQuiz(quizId);
   if (!quiz) {
     document.getElementById('quiz-questions').innerHTML = '<p>Quiz não encontrado.</p>';
@@ -244,8 +325,7 @@ async function loadQuizTake(quizId) {
     return;
   }
 
-  document.getElementById('quiz-title').textContent = quiz.title;
-  document.getElementById('quiz-theme').textContent = `Tema: ${quiz.theme}`;
+  document.getElementById('quiz-backdrop-slot').innerHTML = renderBackdropHtml(quiz);
 
   const container = document.getElementById('quiz-questions');
   container.innerHTML = quiz.questions.map((q, qi) => `
@@ -308,17 +388,15 @@ async function loadQuizTake(quizId) {
 // ---------- Resultado individual ----------
 
 async function loadResult(quizId) {
+  document.getElementById('result-backdrop-slot').innerHTML = '';
   const quiz = await fetchQuiz(quizId);
   if (!quiz) {
     document.getElementById('result-content').innerHTML = '<div class="card"><p>Quiz não encontrado.</p></div>';
     return;
   }
 
-  document.getElementById('result-title').textContent = quiz.title;
-  document.getElementById('result-theme').innerHTML = `
-    Tema: ${escapeHtml(quiz.theme)} ·
-    <span class="badge ${quiz.status === 'open' ? 'open' : 'closed'}">${quiz.status === 'open' ? 'ABERTO' : 'ENCERRADO'}</span>
-  `;
+  const badgeHtml = `<span class="badge ${quiz.status === 'open' ? 'open' : 'closed'}">${quiz.status === 'open' ? 'ABERTO' : 'ENCERRADO'}</span>`;
+  document.getElementById('result-backdrop-slot').innerHTML = renderBackdropHtml(quiz, badgeHtml);
 
   const myResult = await fetchUserResult(quizId, currentUser.uid);
   const content = document.getElementById('result-content');
@@ -452,9 +530,13 @@ document.getElementById('ranking-theme-select').addEventListener('change', rende
 
 // ---------- Admin ----------
 
+let editingQuizId = null;
+let adminQuizzesById = new Map();
+
 async function loadAdmin() {
   setError('admin-error', null);
   setSuccess('admin-success', null);
+  cancelEditQuiz();
   await renderAdminQuizList();
 }
 
@@ -465,6 +547,7 @@ async function renderAdminQuizList() {
   const quizzes = await fetchAllQuizzes();
   if (quizzes.length === 0) {
     list.innerHTML = '<p class="muted">Nenhum quiz criado ainda.</p>';
+    adminQuizzesById = new Map();
     return;
   }
 
@@ -473,17 +556,21 @@ async function renderAdminQuizList() {
     return { ...q, respondents: resultsSnap.size };
   }));
 
+  adminQuizzesById = new Map(rows.map((q) => [q.id, q]));
+
   list.innerHTML = rows.map((q) => `
     <div class="quiz-list-item">
-      <div>
+      ${renderThumbHtml(q)}
+      <div class="info">
         <strong>${escapeHtml(q.title)}</strong>
         <span class="badge ${q.status === 'open' ? 'open' : 'closed'}">${q.status === 'open' ? 'ABERTO' : 'ENCERRADO'}</span>
         <div class="muted" style="font-size:0.85rem;">
           Tema: ${escapeHtml(q.theme)} · ${q.questions.length} perguntas · ${q.respondents} responderam
         </div>
       </div>
-      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <div class="actions">
         <a href="#/quiz/${q.id}/resultado" class="btn small secondary">Ver</a>
+        <button class="btn small secondary" data-action="edit" data-id="${q.id}">Editar</button>
         ${q.status === 'open'
           ? `<button class="btn small secondary" data-action="close" data-id="${q.id}">Encerrar</button>`
           : `<button class="btn small secondary" data-action="reopen" data-id="${q.id}">Reabrir</button>`}
@@ -497,10 +584,44 @@ async function renderAdminQuizList() {
   });
 }
 
+function startEditQuiz(quiz) {
+  editingQuizId = quiz.id;
+
+  const payload = { theme: quiz.theme, title: quiz.title, questions: quiz.questions };
+  if (quiz.imageUrl) payload.imageUrl = quiz.imageUrl;
+
+  document.getElementById('admin-json').value = JSON.stringify(payload, null, 2);
+  document.getElementById('admin-form-title').textContent = `Editando: ${quiz.title}`;
+  document.getElementById('admin-submit-btn').textContent = 'Salvar alterações';
+  document.getElementById('admin-cancel-edit').classList.remove('hidden');
+  document.getElementById('admin-close-others-wrap').classList.add('hidden');
+  document.getElementById('admin-edit-warning').classList.toggle('hidden', !(quiz.respondents > 0));
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEditQuiz() {
+  editingQuizId = null;
+  document.getElementById('admin-json').value = '';
+  document.getElementById('admin-form-title').textContent = 'Criar novo quiz';
+  document.getElementById('admin-submit-btn').textContent = 'Criar quiz';
+  document.getElementById('admin-cancel-edit').classList.add('hidden');
+  document.getElementById('admin-close-others-wrap').classList.remove('hidden');
+  document.getElementById('admin-edit-warning').classList.add('hidden');
+  document.getElementById('admin-close-others').checked = true;
+}
+
+document.getElementById('admin-cancel-edit').addEventListener('click', cancelEditQuiz);
+
 async function handleAdminQuizAction(action, quizId) {
   setError('admin-error', null);
   setSuccess('admin-success', null);
   try {
+    if (action === 'edit') {
+      const quiz = adminQuizzesById.get(quizId);
+      if (quiz) startEditQuiz(quiz);
+      return;
+    }
     if (action === 'close') {
       await db.collection('quizzes').doc(quizId).update({ status: 'closed' });
     } else if (action === 'reopen') {
@@ -540,6 +661,10 @@ document.getElementById('admin-import-form').addEventListener('submit', async (e
     setError('admin-error', 'JSON precisa ter theme, title e uma lista questions com pelo menos 1 pergunta.');
     return;
   }
+  if (data.imageUrl && typeof data.imageUrl !== 'string') {
+    setError('admin-error', '"imageUrl" precisa ser um texto (link da imagem) ou ser omitido.');
+    return;
+  }
   for (let i = 0; i < data.questions.length; i++) {
     const q = data.questions[i];
     if (!q.text || !Array.isArray(q.options) || q.options.length < 2) {
@@ -556,26 +681,39 @@ document.getElementById('admin-import-form').addEventListener('submit', async (e
   submitBtn.disabled = true;
 
   try {
-    if (closeOthers) {
-      const quizzes = await fetchAllQuizzes();
-      const openOnes = quizzes.filter((q) => q.status === 'open');
-      if (openOnes.length > 0) {
-        const batch = db.batch();
-        openOnes.forEach((q) => batch.update(db.collection('quizzes').doc(q.id), { status: 'closed' }));
-        await batch.commit();
+    if (editingQuizId) {
+      // modo edicao: so atualiza o conteudo do quiz existente, nao mexe em status/data
+      await db.collection('quizzes').doc(editingQuizId).update({
+        theme: data.theme,
+        title: data.title,
+        imageUrl: data.imageUrl || null,
+        questions: data.questions.map((q) => ({ text: q.text, options: q.options, correct: q.correct })),
+      });
+      setSuccess('admin-success', 'Quiz atualizado com sucesso!');
+      cancelEditQuiz();
+    } else {
+      if (closeOthers) {
+        const quizzes = await fetchAllQuizzes();
+        const openOnes = quizzes.filter((q) => q.status === 'open');
+        if (openOnes.length > 0) {
+          const batch = db.batch();
+          openOnes.forEach((q) => batch.update(db.collection('quizzes').doc(q.id), { status: 'closed' }));
+          await batch.commit();
+        }
       }
+
+      await db.collection('quizzes').add({
+        theme: data.theme,
+        title: data.title,
+        imageUrl: data.imageUrl || null,
+        status: 'open',
+        questions: data.questions.map((q) => ({ text: q.text, options: q.options, correct: q.correct })),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      document.getElementById('admin-json').value = '';
+      setSuccess('admin-success', 'Quiz criado com sucesso!');
     }
-
-    await db.collection('quizzes').add({
-      theme: data.theme,
-      title: data.title,
-      status: 'open',
-      questions: data.questions.map((q) => ({ text: q.text, options: q.options, correct: q.correct })),
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-
-    document.getElementById('admin-json').value = '';
-    setSuccess('admin-success', 'Quiz criado com sucesso!');
     await renderAdminQuizList();
   } catch (err) {
     console.error(err);
