@@ -105,23 +105,25 @@ function posterBackgroundInline(quiz) {
 function renderThumbHtml(quiz) {
   const hasImage = !!quiz.imageUrl;
   const style = posterBackgroundInline(quiz);
-  const inner = hasImage ? '' : `<div class="poster-fallback"><div class="icon">🎬</div></div>`;
+  const inner = hasImage ? '' : `<div class="poster-icon">🎬</div>`;
   return `<div class="thumb" style="${style}">${inner}</div>`;
 }
 
 // card do carrossel do dashboard: o quiz aberto vem colorido e maior (current),
-// os encerrados vem em preto-e-branco e menores (closed)
+// os encerrados vem em preto-e-branco e menores (closed). Titulo (e tema, se
+// for o atual) ficam embutidos na parte de baixo do proprio poster.
 function renderCarouselCardHtml(quiz, isCurrent, target) {
   const hasImage = !!quiz.imageUrl;
   const style = posterBackgroundInline(quiz);
   const badge = isCurrent ? '<span class="badge open">ABERTO</span>' : '';
-  const fallback = hasImage
-    ? ''
-    : `<div class="poster-fallback"><div class="icon">🎬</div><div class="title">${escapeHtml(quiz.theme || quiz.title)}</div></div>`;
-  const overlay = hasImage && !isCurrent
-    ? `<div class="poster-overlay"><div class="title">${escapeHtml(quiz.title)}</div></div>`
-    : '';
-  return `<div class="carousel-card ${isCurrent ? 'current' : 'closed'}" style="${style}" data-goto="${target}">${badge}${fallback}${overlay}</div>`;
+  const iconHtml = hasImage ? '' : `<div class="poster-icon">🎬</div>`;
+  const overlay = `
+    <div class="poster-overlay">
+      <div class="title">${escapeHtml(quiz.title)}</div>
+      ${isCurrent ? `<div class="theme">${escapeHtml(quiz.theme)}</div>` : ''}
+    </div>
+  `;
+  return `<div class="carousel-card ${isCurrent ? 'current' : 'closed'}" style="${style}" data-goto="${target}">${badge}${iconHtml}${overlay}</div>`;
 }
 
 // banner menor (topo das telas de responder/resultado)
@@ -290,8 +292,6 @@ async function loadDashboard() {
       : `<a href="#/quiz/${openQuiz.id}" class="btn">▶ Responder agora</a>`;
     captionHtml = `
       <div class="carousel-caption">
-        <h2 class="hero-title">${escapeHtml(openQuiz.title)}</h2>
-        <p class="hero-theme">${escapeHtml(openQuiz.theme)}</p>
         <div class="hero-actions">${actionHtml}</div>
       </div>
     `;
