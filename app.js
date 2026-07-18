@@ -159,16 +159,15 @@ function renderCarouselCardHtml(quiz, isCurrent, target) {
   return `<div class="carousel-card ${isCurrent ? 'current' : 'closed'}" style="${style}" data-goto="${target}">${badge}${overlay}</div>`;
 }
 
-// banner menor (topo das telas de responder/resultado)
+// cabeçalho simples (topo das telas de responder/resultado) — sem imagem de
+// fundo: o pôster é vertical e sempre ficava cortado feio esticado num banner
+// horizontal, então aqui é só texto.
 function renderBackdropHtml(quiz, badgeHtml) {
-  const style = posterBackgroundInline(quiz);
   return `
-    <div class="backdrop" style="${style}">
-      <div class="backdrop-content">
-        ${badgeHtml || ''}
-        <h1>${escapeHtml(quiz.title)}</h1>
-        <p class="muted">${escapeHtml(quiz.theme)}</p>
-      </div>
+    <div class="quiz-header">
+      ${badgeHtml || ''}
+      <h1>${escapeHtml(quiz.title)}</h1>
+      <p class="muted">${escapeHtml(quiz.theme)}</p>
     </div>
   `;
 }

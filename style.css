@@ -220,28 +220,11 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
 .carousel-card.current .poster-overlay .title { font-size: 1.6rem; }
 .carousel-card.current .poster-overlay .theme { font-size: 0.88rem; margin-top: 4px; }
 
-/* ---------- Backdrop banner (quiz / resultado) ---------- */
+/* ---------- Cabeçalho (quiz / resultado) ---------- */
 
-.backdrop {
-  position: relative;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  min-height: 160px;
-  margin: 18px 0 22px;
-  display: flex;
-  align-items: flex-end;
-  background-size: cover;
-  background-position: center;
-}
-.backdrop::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.25));
-}
-.backdrop-content { position: relative; padding: 18px 20px; }
-.backdrop-content h1 { margin: 4px 0 4px; font-size: 1.8rem; }
-.backdrop-content .muted { margin: 0; }
+.quiz-header { margin: 18px 0 22px; }
+.quiz-header h1 { margin: 6px 0 4px; }
+.quiz-header .muted { margin: 0; }
 
 /* ---------- Questions / options ---------- */
 
