@@ -442,39 +442,47 @@ function buildRanking(rows) {
   const byUser = new Map();
   rows.forEach((r) => {
     if (!byUser.has(r.username)) {
-      byUser.set(r.username, { username: r.username, quizzes: 0, sum: 0 });
+      byUser.set(r.username, { username: r.username, quizzes: 0, sumPct: 0, totalQuestions: 0, totalCorrect: 0 });
     }
     const entry = byUser.get(r.username);
     entry.quizzes += 1;
-    entry.sum += Number(r.percentage);
+    entry.sumPct += Number(r.percentage);
+    entry.totalQuestions += Number(r.total || 0);
+    entry.totalCorrect += Number(r.correctCount || 0);
   });
   const ranking = Array.from(byUser.values()).map((e) => ({
     username: e.username,
     quizzes: e.quizzes,
-    average: Math.round((e.sum / e.quizzes) * 10) / 10,
+    totalQuestions: e.totalQuestions,
+    totalCorrect: e.totalCorrect,
+    average: Math.round((e.sumPct / e.quizzes) * 10) / 10,
   }));
   ranking.sort((a, b) => b.average - a.average || b.quizzes - a.quizzes);
   return ranking;
 }
 
-function renderRankingTable(bodyId, ranking) {
-  const body = document.getElementById(bodyId);
+function renderRankingTable(ranking) {
+  const body = document.getElementById('ranking-body');
   body.innerHTML = ranking.map((r, i) => `
     <tr>
       <td>${i + 1}</td>
       <td>${escapeHtml(r.username)}</td>
       <td>${r.quizzes}</td>
+      <td>${r.totalQuestions}</td>
+      <td>${r.totalCorrect}</td>
       <td>${r.average}%</td>
     </tr>
   `).join('');
 }
 
 let rankingRowsCache = [];
+let rankingActiveTheme = null; // null = "Geral" (sem filtro)
 
 async function loadRanking() {
   const snap = await db.collectionGroup('results').get();
   const rows = snap.docs.map((d) => d.data());
   rankingRowsCache = rows;
+  rankingActiveTheme = null;
 
   const empty = document.getElementById('ranking-empty');
   const content = document.getElementById('ranking-content');
@@ -487,42 +495,32 @@ async function loadRanking() {
   empty.classList.add('hidden');
   content.classList.remove('hidden');
 
-  renderRankingTable('ranking-overall-body', buildRanking(rows));
-
   const themes = Array.from(new Set(rows.map((r) => r.theme))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  const select = document.getElementById('ranking-theme-select');
-  const prevValue = select.value;
-  select.innerHTML = '<option value="">Escolha um tema...</option>' +
-    themes.map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
-  select.value = themes.includes(prevValue) ? prevValue : '';
-
-  renderThemeRanking();
+  renderThemeTabs(themes);
+  renderRankingForActiveTheme();
 }
 
-function renderThemeRanking() {
-  const select = document.getElementById('ranking-theme-select');
-  const theme = select.value;
-  const resultDiv = document.getElementById('ranking-theme-result');
-  if (!theme) {
-    resultDiv.innerHTML = '';
-    return;
-  }
-  const filtered = rankingRowsCache.filter((r) => r.theme === theme);
-  const ranking = buildRanking(filtered);
-  resultDiv.innerHTML = `
-    <h3>${escapeHtml(theme)}</h3>
-    <table class="ranking">
-      <thead><tr><th>#</th><th>Jogador</th><th>Quizzes</th><th>Média</th></tr></thead>
-      <tbody>
-        ${ranking.map((r, i) => `
-          <tr><td>${i + 1}</td><td>${escapeHtml(r.username)}</td><td>${r.quizzes}</td><td>${r.average}%</td></tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
+function renderThemeTabs(themes) {
+  const tabs = document.getElementById('ranking-theme-tabs');
+  const chips = ['<button type="button" class="theme-tab active" data-theme="">Geral</button>']
+    .concat(themes.map((t) => `<button type="button" class="theme-tab" data-theme="${escapeHtml(t)}">${escapeHtml(t)}</button>`));
+  tabs.innerHTML = chips.join('');
+
+  tabs.querySelectorAll('.theme-tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      rankingActiveTheme = btn.dataset.theme || null;
+      tabs.querySelectorAll('.theme-tab').forEach((b) => b.classList.toggle('active', b === btn));
+      renderRankingForActiveTheme();
+    });
+  });
 }
 
-document.getElementById('ranking-theme-select').addEventListener('change', renderThemeRanking);
+function renderRankingForActiveTheme() {
+  const rows = rankingActiveTheme
+    ? rankingRowsCache.filter((r) => r.theme === rankingActiveTheme)
+    : rankingRowsCache;
+  renderRankingTable(buildRanking(rows));
+}
 
 // ---------- Admin ----------
 
