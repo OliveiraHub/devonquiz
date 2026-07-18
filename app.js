@@ -453,27 +453,38 @@ async function loadDashboard() {
   });
 
   // arrastar com o mouse no desktop (touch ja rola nativamente) — deixa o
-  // movimento mais fluido pra quem nao tem trackpad/tela sensivel ao toque
+  // movimento mais fluido pra quem nao tem trackpad/tela sensivel ao toque.
+  // so vira "arrasto" de verdade depois que o ponteiro se move alem de um
+  // limiar minimo — chamar setPointerCapture logo no primeiro clique (sem
+  // esse limiar) desviava o clique do poster pro carrossel inteiro, e por
+  // isso nenhum poster (principalmente o primeiro, mais testado) abria.
+  const DRAG_THRESHOLD = 6;
   let dragState = null;
   carouselEl.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'touch') return; // toque ja tem scroll nativo
-    dragState = { startX: e.clientX, startScrollLeft: carouselEl.scrollLeft };
-    carouselEl.classList.add('dragging');
-    carouselEl.setPointerCapture(e.pointerId);
+    dragState = { startX: e.clientX, startScrollLeft: carouselEl.scrollLeft, pointerId: e.pointerId, dragging: false };
   });
   carouselEl.addEventListener('pointermove', (e) => {
-    if (!dragState) return;
-    carouselEl.scrollLeft = dragState.startScrollLeft - (e.clientX - dragState.startX);
+    if (!dragState || dragState.pointerId !== e.pointerId) return;
+    const dx = e.clientX - dragState.startX;
+    if (!dragState.dragging) {
+      if (Math.abs(dx) < DRAG_THRESHOLD) return;
+      dragState.dragging = true;
+      carouselEl.classList.add('dragging');
+      carouselEl.setPointerCapture(e.pointerId);
+    }
+    carouselEl.scrollLeft = dragState.startScrollLeft - dx;
   });
-  const endDrag = () => {
-    if (!dragState) return;
+  const endDrag = (e) => {
+    if (!dragState || (e && e.pointerId !== undefined && dragState.pointerId !== e.pointerId)) return;
+    const wasDragging = dragState.dragging;
     dragState = null;
     carouselEl.classList.remove('dragging');
-    // depois de arrastar, forca centralizar no card mais proximo — sem isso
-    // o carrossel podia ficar "preso" entre dois posters (o snap do CSS nem
-    // sempre reengata sozinho), o que deixava o primeiro poster praticamente
-    // impossivel de selecionar.
-    centeredCard().scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    if (wasDragging) {
+      // depois de arrastar, forca centralizar no card mais proximo — sem
+      // isso o carrossel podia ficar "preso" entre dois posters.
+      centeredCard().scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    }
   };
   carouselEl.addEventListener('pointerup', endDrag);
   carouselEl.addEventListener('pointercancel', endDrag);
