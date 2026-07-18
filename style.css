@@ -150,8 +150,12 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(11,11,11,0.75);
+  /* fundo claro e borda bem visivel — o tom escuro anterior (proximo do
+     preto da pagina) sumia de vista sempre que o botao nao estava por cima
+     de um poster, ficando "escondido" no fundo escuro do site. */
+  border: 1px solid rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.16);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.6);
   color: var(--text);
   font-size: 1.4rem;
   line-height: 1;
