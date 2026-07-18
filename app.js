@@ -107,20 +107,15 @@ const MOVIE_QUOTES = [
   { quote: 'Sempre.', movie: 'Harry Potter e as Relíquias da Morte' },
 ];
 
-function pickQuote(seedStr) {
-  const idx = hashString(String(seedStr || 'x')) % MOVIE_QUOTES.length;
-  return MOVIE_QUOTES[idx];
-}
-
-// se o quiz tiver suas proprias frases (campo "quotes" no JSON), usa uma
-// delas — cada uma so com o texto, sem atribuicao de filme. Senao, cai na
-// lista generica de frases de cinema acima.
-function pickResultQuote(quiz, seedStr) {
-  if (Array.isArray(quiz.quotes) && quiz.quotes.length > 0) {
-    const idx = hashString(String(seedStr || 'x')) % quiz.quotes.length;
-    return { quote: quiz.quotes[idx], movie: null };
-  }
-  return pickQuote(seedStr);
+// se o quiz tiver suas proprias frases (campo "quotes" no JSON), sorteia uma
+// delas a cada vez que a pessoa ve o resultado — cada item pode ser so um
+// texto ou um objeto { "quote": "...", "movie": "..." } com atribuicao.
+// Senao, sorteia da lista generica de frases de cinema acima.
+function pickResultQuote(quiz) {
+  const pool = (Array.isArray(quiz.quotes) && quiz.quotes.length > 0) ? quiz.quotes : MOVIE_QUOTES;
+  const item = pool[Math.floor(Math.random() * pool.length)];
+  if (typeof item === 'string') return { quote: item, movie: null };
+  return { quote: item.quote || item.text || '', movie: item.movie || null };
 }
 
 // remove caracteres que quebrariam a sintaxe de url("...") em CSS
@@ -141,12 +136,6 @@ function backgroundInlineForUrl(url, seedStr) {
 // capa vertical (pôster) — usada no carrossel e na miniatura do admin
 function posterBackgroundInline(quiz) {
   return backgroundInlineForUrl(quiz.imageUrl, quiz.theme || quiz.title || quiz.id);
-}
-
-// capa horizontal (banner) — usa backdropUrl se tiver; senão cai pro
-// imageUrl (pôster vertical, que fica cortado no banner, mas nunca fica sem capa)
-function backdropBackgroundInline(quiz) {
-  return backgroundInlineForUrl(quiz.backdropUrl || quiz.imageUrl, quiz.theme || quiz.title || quiz.id);
 }
 
 // thumbnail pequena (lista do admin)
@@ -172,7 +161,7 @@ function renderCarouselCardHtml(quiz, isCurrent, target) {
 
 // banner menor (topo das telas de responder/resultado)
 function renderBackdropHtml(quiz, badgeHtml) {
-  const style = backdropBackgroundInline(quiz);
+  const style = posterBackgroundInline(quiz);
   return `
     <div class="backdrop" style="${style}">
       <div class="backdrop-content">
@@ -500,7 +489,7 @@ async function loadResult(quizId) {
     return `<div class="question-block"><h3>${qi + 1}. ${escapeHtml(q.text)}</h3>${optsHtml}</div>`;
   }).join('');
 
-  const quote = pickResultQuote(quiz, `${quizId}_${currentUser.uid}`);
+  const quote = pickResultQuote(quiz);
 
   content.innerHTML = `
     <div class="card score-hero">
@@ -679,7 +668,6 @@ function startEditQuiz(quiz) {
 
   const payload = { theme: quiz.theme, title: quiz.title, questions: quiz.questions };
   if (quiz.imageUrl) payload.imageUrl = quiz.imageUrl;
-  if (quiz.backdropUrl) payload.backdropUrl = quiz.backdropUrl;
   if (quiz.quotes && quiz.quotes.length) payload.quotes = quiz.quotes;
 
   document.getElementById('admin-json').value = JSON.stringify(payload, null, 2);
@@ -757,13 +745,13 @@ document.getElementById('admin-import-form').addEventListener('submit', async (e
     setError('admin-error', '"imageUrl" precisa ser um texto (link da imagem) ou ser omitido.');
     return;
   }
-  if (data.backdropUrl && typeof data.backdropUrl !== 'string') {
-    setError('admin-error', '"backdropUrl" precisa ser um texto (link da imagem) ou ser omitido.');
-    return;
-  }
   if (data.quotes !== undefined) {
-    if (!Array.isArray(data.quotes) || data.quotes.some((q) => typeof q !== 'string' || !q.trim())) {
-      setError('admin-error', '"quotes" precisa ser uma lista de textos (frases de filme) ou ser omitido.');
+    const quotesOk = Array.isArray(data.quotes) && data.quotes.every((q) => {
+      if (typeof q === 'string') return q.trim().length > 0;
+      return q && typeof q === 'object' && typeof q.quote === 'string' && q.quote.trim().length > 0;
+    });
+    if (!quotesOk) {
+      setError('admin-error', '"quotes" precisa ser uma lista de frases (texto simples ou {"quote": "...", "movie": "..."}) ou ser omitido.');
       return;
     }
   }
@@ -789,7 +777,6 @@ document.getElementById('admin-import-form').addEventListener('submit', async (e
         theme: data.theme,
         title: data.title,
         imageUrl: data.imageUrl || null,
-        backdropUrl: data.backdropUrl || null,
         quotes: data.quotes || [],
         questions: data.questions.map((q) => ({ text: q.text, options: q.options, correct: q.correct })),
       });
@@ -810,7 +797,6 @@ document.getElementById('admin-import-form').addEventListener('submit', async (e
         theme: data.theme,
         title: data.title,
         imageUrl: data.imageUrl || null,
-        backdropUrl: data.backdropUrl || null,
         quotes: data.quotes || [],
         status: 'open',
         questions: data.questions.map((q) => ({ text: q.text, options: q.options, correct: q.correct })),

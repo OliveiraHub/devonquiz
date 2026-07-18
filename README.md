@@ -109,10 +109,9 @@ Formato esperado do JSON:
   "theme": "Diretores",
   "title": "Tarantino",
   "imageUrl": "https://exemplo.com/capa-tarantino.jpg",
-  "backdropUrl": "https://exemplo.com/banner-tarantino.jpg",
   "quotes": [
-    "Frase 1 de algum filme do Tarantino",
-    "Frase 2",
+    { "quote": "Frase de algum filme do Tarantino", "movie": "Nome do filme" },
+    "ou só uma frase simples, sem atribuição",
     "Frase 3",
     "Frase 4",
     "Frase 5"
@@ -130,16 +129,14 @@ Formato esperado do JSON:
 `title` é o nome que aparece grande no pôster (sem prefixo "Quiz:"). `theme` é a categoria
 usada no filtro do ranking (ex: "Diretores", "Décadas") — vale repetir o mesmo tema em vários
 quizzes pra agrupar no ranking. `correct` é o índice (começando em 0) da opção certa.
-`imageUrl` é opcional: um link direto pra uma imagem vertical, estilo pôster de filme (usada
-no carrossel de quizzes e na miniatura do admin). `backdropUrl` também é opcional: um link
-pra uma imagem horizontal (paisagem), usada só no banner das telas de responder/resultado —
-como o pôster é vertical, ele fica cortado quando esticado num banner horizontal; se quiser
-evitar isso, passe uma imagem horizontal própria em `backdropUrl`. Se não passar nenhuma das
-duas, o app gera automaticamente uma capa colorida com o nome do tema — não fica sem capa
-nenhuma. `quotes` também é opcional: uma lista de frases (ideal 5) relacionadas ao tema do
-quiz. Quando cada pessoa vê o resultado, aparece uma dessas frases (sempre a mesma pra ela
-naquele quiz, mas pode variar entre pessoas diferentes). Se não passar `quotes`, o app usa
-uma lista genérica de frases famosas de cinema.
+`imageUrl` é opcional: um link direto pra uma imagem (a "capa" do quiz, estilo pôster de
+filme), mostrada no banner das telas de responder/resultado e no carrossel de quizzes. Se
+você não passar `imageUrl`, o app gera automaticamente uma capa colorida com o nome do tema
+— não fica sem capa nenhuma. `quotes` também é opcional: uma lista de frases (ideal 5)
+relacionadas ao tema do quiz — cada item pode ser só um texto ou um objeto
+`{ "quote": "...", "movie": "..." }` com o nome do filme. Ao ver o resultado, a pessoa vê uma
+frase sorteada aleatoriamente dessa lista. Se não passar `quotes`, o app sorteia de uma lista
+genérica de frases famosas de cinema.
 
 Dica pra achar um link de imagem que funcione: peça pro Claude buscar (ele te dá a URL
 direta de uma imagem, geralmente do Wikimedia Commons, que pode ser usada assim sem

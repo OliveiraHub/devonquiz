@@ -231,9 +231,7 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   display: flex;
   align-items: flex-end;
   background-size: cover;
-  /* alinha o topo da imagem ao topo do banner: o corte (quando a imagem
-     nao cabe toda) fica so na parte de baixo, nunca cortando o topo */
-  background-position: center top;
+  background-position: center;
 }
 .backdrop::before {
   content: "";
