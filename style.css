@@ -66,13 +66,11 @@ nav.topnav button.linklike:hover { color: var(--text); }
    nome — assim o resto do menu nunca se move nem quebra por causa dele. */
 @media (max-width: 600px) {
   nav.topnav {
-    padding: 8px 10px;
-    gap: 6px;
+    padding: 10px 14px;
+    gap: 8px;
     flex-wrap: nowrap;
   }
   nav.topnav .brand {
-    font-size: 0.95rem;
-    letter-spacing: 0.3px;
     flex: 0 0 auto;
     white-space: nowrap;
   }
@@ -82,8 +80,7 @@ nav.topnav button.linklike:hover { color: var(--text); }
     flex-wrap: nowrap;
     justify-content: flex-end;
     overflow: hidden;
-    gap: 7px;
-    font-size: 0.68rem;
+    gap: 10px;
   }
   nav.topnav .links a,
   nav.topnav .links button.linklike,
