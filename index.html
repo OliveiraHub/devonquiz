@@ -95,19 +95,13 @@
     <div id="ranking-empty" class="card hidden"><p>Ainda não há quizzes respondidos para gerar ranking.</p></div>
     <div id="ranking-content" class="hidden">
       <div class="card">
-        <h2>Ranking geral</h2>
-        <p class="muted">Média do percentual de acerto em todos os quizzes que cada um completou.</p>
-        <table class="ranking"><thead><tr><th>#</th><th>Jogador</th><th>Quizzes</th><th>Média</th></tr></thead>
-        <tbody id="ranking-overall-body"></tbody></table>
-      </div>
-      <div class="card">
-        <h2>Ranking por tema</h2>
-        <div class="theme-filter">
-          <select id="ranking-theme-select">
-            <option value="">Escolha um tema...</option>
-          </select>
-        </div>
-        <div id="ranking-theme-result"></div>
+        <div class="theme-tabs" id="ranking-theme-tabs"></div>
+        <table class="ranking">
+          <thead>
+            <tr><th>#</th><th>Jogador</th><th>Quizzes</th><th>Perguntas</th><th>Acertos</th><th>Média</th></tr>
+          </thead>
+          <tbody id="ranking-body"></tbody>
+        </table>
       </div>
     </div>
   </div>
