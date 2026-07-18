@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quiz Cinema</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <nav class="topnav">
-  <a href="#/" class="brand">🎬 Quiz Cinema</a>
+  <a href="#/" class="brand">QUIZ CINEMA</a>
   <div class="links" id="nav-links">
     <!-- preenchido via JS -->
   </div>
@@ -58,26 +61,24 @@
   <div id="view-dashboard" class="hidden">
     <h1 id="dashboard-greeting">Olá 👋</h1>
 
-    <div class="card" id="dashboard-quiz-card">
-      <!-- preenchido via JS -->
+    <div id="dashboard-hero-slot">
+      <!-- preenchido via JS: .hero (quiz aberto) ou .hero-empty -->
+    </div>
+
+    <div id="dashboard-closed-row-slot">
+      <!-- preenchido via JS: fileira de pôsteres dos quizzes encerrados -->
     </div>
 
     <div class="card">
-      <h2>Ver ranking</h2>
+      <h2>Ranking</h2>
       <p class="muted">Ranking geral e por tema de todos os quizzes já jogados.</p>
       <a href="#/ranking" class="btn secondary">Abrir ranking</a>
-    </div>
-
-    <div class="card hidden" id="dashboard-closed-card">
-      <h2>Quizzes encerrados recentemente</h2>
-      <div id="dashboard-closed-list"></div>
     </div>
   </div>
 
   <!-- QUIZ (responder) -->
   <div id="view-quiz" class="hidden">
-    <h1 id="quiz-title">Quiz</h1>
-    <p class="muted" id="quiz-theme" style="margin-top:-14px;"></p>
+    <div id="quiz-backdrop-slot"></div>
     <div id="quiz-error" class="error-msg hidden"></div>
     <form id="quiz-form">
       <div class="card" id="quiz-questions"></div>
@@ -87,8 +88,7 @@
 
   <!-- RESULTADO -->
   <div id="view-result" class="hidden">
-    <h1 id="result-title">Quiz</h1>
-    <p class="muted" id="result-theme" style="margin-top:-14px;"></p>
+    <div id="result-backdrop-slot"></div>
     <div id="result-content"></div>
     <a href="#/ranking" class="btn secondary">Ver ranking</a>
   </div>
@@ -123,7 +123,7 @@
     <div id="admin-success" class="success-msg hidden"></div>
 
     <div class="card">
-      <h2>Criar novo quiz</h2>
+      <h2 id="admin-form-title">Criar novo quiz</h2>
       <p class="muted">
         Peça pro Claude gerar as perguntas (ex: "gera 8 perguntas sobre filmes do Tarantino em JSON pro Quiz Cinema")
         e cole o JSON abaixo no formato:
@@ -131,6 +131,7 @@
       <pre class="example">{
   "theme": "Tarantino",
   "title": "Quiz: Tarantino",
+  "imageUrl": "https://exemplo.com/capa-tarantino.jpg",
   "questions": [
     {
       "text": "Qual filme tem a cena da dança do twist?",
@@ -139,16 +140,22 @@
     }
   ]
 }</pre>
-      <p class="muted" style="font-size:0.85rem;">"correct" é o índice (começando em 0) da opção certa.</p>
+      <p class="muted" style="font-size:0.85rem;">"correct" é o índice (começando em 0) da opção certa. "imageUrl" é opcional — um link direto pra uma imagem (capa/pôster do tema); se não passar, o app gera uma capa colorida automaticamente.</p>
+      <p class="muted hidden" id="admin-edit-warning" style="font-size:0.85rem; color:#ffb3b8;">
+        Editando um quiz que já tem respostas: se você mudar a ordem ou o texto das opções, o gabarito de quem já respondeu pode não bater mais. Prefira só corrigir texto/imagem quando já tiver gente que votou.
+      </p>
 
       <form id="admin-import-form">
         <label for="admin-json">JSON do quiz</label>
         <textarea id="admin-json" required placeholder="Cole aqui o JSON gerado..."></textarea>
-        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <label id="admin-close-others-wrap" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
           <input type="checkbox" id="admin-close-others" checked style="width:auto; margin:0;">
           <span class="muted" style="margin:0;">Encerrar automaticamente qualquer quiz que esteja aberto</span>
         </label>
-        <button type="submit" class="btn" style="margin-top:14px;">Criar quiz</button>
+        <div style="display:flex; gap:10px; align-items:center; margin-top:14px;">
+          <button type="submit" class="btn" id="admin-submit-btn">Criar quiz</button>
+          <button type="button" class="linklike hidden" id="admin-cancel-edit">Cancelar edição</button>
+        </div>
       </form>
     </div>
 

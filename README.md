@@ -90,12 +90,25 @@ no navegador) ou [Vercel](https://vercel.com/new).
 3. Quando todo mundo já tiver votado, você pode criar o próximo quiz — o anterior já fica
    guardado no ranking.
 
+## Como editar um quiz já publicado
+
+Na lista de quizzes do **Admin**, clique em **Editar**: o JSON daquele quiz é carregado no
+campo de texto, o botão vira **Salvar alterações** e dá pra corrigir tema, título, capa
+(`imageUrl`) ou as perguntas. Clique em **Cancelar edição** pra voltar ao modo de criar um
+quiz novo sem salvar nada.
+
+Cuidado: se o quiz editado já tem gente que respondeu e você muda a ordem ou o texto das
+opções, o gabarito de quem já votou pode não bater mais com o que a pessoa viu na hora de
+responder. Editar é seguro pra corrigir texto/imagem; evite reordenar opções de um quiz que
+já tem respostas.
+
 Formato esperado do JSON:
 
 ```json
 {
   "theme": "Tarantino",
   "title": "Quiz: Tarantino",
+  "imageUrl": "https://exemplo.com/capa-tarantino.jpg",
   "questions": [
     {
       "text": "Qual filme tem a cena da dança do twist?",
@@ -106,7 +119,15 @@ Formato esperado do JSON:
 }
 ```
 
-`correct` é o índice (começando em 0) da opção certa.
+`correct` é o índice (começando em 0) da opção certa. `imageUrl` é opcional: um link direto
+pra uma imagem (a "capa" do quiz, estilo pôster de filme, mostrada no banner e no carrossel
+de quizzes encerrados). Se você não passar `imageUrl`, o app gera automaticamente uma capa
+colorida com o nome do tema — não fica sem capa nenhuma.
+
+Dica pra achar um link de imagem que funcione: peça pro Claude buscar (ele te dá a URL
+direta de uma imagem, geralmente do Wikimedia Commons, que pode ser usada assim sem
+problema de direitos) ou use qualquer link que termine em `.jpg`/`.png` e que abra a imagem
+sozinha no navegador (clique com o botão direito numa imagem > "Copiar endereço da imagem").
 
 ## Limitações (bom saber)
 
