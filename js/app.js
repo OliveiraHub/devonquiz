@@ -166,12 +166,37 @@ function renderNav() {
       <a href="#/ranking">Ranking</a>
       ${currentUserDoc.isAdmin ? '<a href="#/admin">Admin</a>' : ''}
       <span class="muted">|</span>
-      <span class="muted">${escapeHtml(currentUserDoc.displayName || currentUserDoc.username)}</span>
+      <button class="linklike" id="nav-displayname-btn" title="Clique para mudar seu nome de exibição">${escapeHtml(currentUserDoc.displayName || currentUserDoc.username)}</button>
       <button class="linklike" id="logout-btn">Sair</button>
     `;
+    document.getElementById('nav-displayname-btn').addEventListener('click', openEditDisplayName);
     document.getElementById('logout-btn').addEventListener('click', () => auth.signOut());
   } else {
     nav.innerHTML = `<a href="#/login">Entrar</a><a href="#/register">Cadastrar</a>`;
+  }
+}
+
+// nome de exibição: pode ser mudado a qualquer momento clicando no proprio
+// nome na barra de titulo. E usado em todo lugar (dashboard, ranking, nav);
+// o "usuario" continua existindo so pra fazer login.
+async function openEditDisplayName() {
+  const current = currentUserDoc.displayName || currentUserDoc.username;
+  const next = prompt('Como você quer aparecer pro grupo?', current);
+  if (next === null) return; // cancelado
+  const trimmed = next.trim();
+  if (!trimmed) {
+    alert('O nome de exibição não pode ficar vazio.');
+    return;
+  }
+  if (trimmed === current) return;
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ displayName: trimmed });
+    currentUserDoc.displayName = trimmed;
+    renderNav();
+    route();
+  } catch (err) {
+    console.error(err);
+    alert('Não foi possível salvar o novo nome. Tente novamente.');
   }
 }
 
@@ -483,8 +508,20 @@ let rankingRowsCache = [];
 let rankingActiveTheme = null; // null = "Geral" (sem filtro)
 
 async function loadRanking() {
-  const snap = await db.collectionGroup('results').get();
-  const rows = snap.docs.map((d) => d.data());
+  const [snap, usersSnap] = await Promise.all([
+    db.collectionGroup('results').get(),
+    db.collection('users').get(),
+  ]);
+  const usersById = new Map(usersSnap.docs.map((d) => [d.id, d.data()]));
+  // o doc de cada resultado tem como ID o uid de quem respondeu (ver envio do
+  // quiz), entao dá pra buscar o nome de exibição ATUAL do usuário em vez de
+  // confiar só no que ficou gravado no momento da resposta.
+  const rows = snap.docs.map((d) => {
+    const data = d.data();
+    const userDoc = usersById.get(d.id);
+    const displayName = (userDoc && (userDoc.displayName || userDoc.username)) || data.displayName || data.username;
+    return { ...data, displayName };
+  });
   rankingRowsCache = rows;
   rankingActiveTheme = null;
 
