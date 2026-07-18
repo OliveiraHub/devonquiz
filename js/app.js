@@ -166,7 +166,7 @@ function renderNav() {
   const nav = document.getElementById('nav-links');
   if (currentUser && currentUserDoc) {
     nav.innerHTML = `
-      <a href="#/">Quiz</a>
+      <a href="#/">Home</a>
       <a href="#/ranking">Ranking</a>
       ${currentUserDoc.isAdmin ? '<a href="#/admin">Admin</a>' : ''}
       <span class="muted">|</span>
@@ -285,19 +285,9 @@ async function loadDashboard() {
     return renderCarouselCardHtml(q, isCurrent, target);
   }).join('');
 
-  let captionHtml;
-  if (openQuiz) {
-    const actionHtml = myResult
-      ? `<a href="#/quiz/${openQuiz.id}/resultado" class="btn secondary">Ver meu resultado</a>`
-      : `<a href="#/quiz/${openQuiz.id}" class="btn">▶ Responder agora</a>`;
-    captionHtml = `
-      <div class="carousel-caption">
-        <div class="hero-actions">${actionHtml}</div>
-      </div>
-    `;
-  } else {
-    captionHtml = `<p class="muted" style="text-align:center; margin-top:10px;">Nenhum quiz aberto no momento.</p>`;
-  }
+  const captionHtml = openQuiz
+    ? ''
+    : `<p class="muted" style="text-align:center; margin-top:10px;">Nenhum quiz aberto no momento.</p>`;
 
   slot.innerHTML = `
     <div class="carousel-wrap"><div class="carousel" id="dashboard-carousel">${cardsHtml}</div></div>
