@@ -172,6 +172,20 @@ function renderBackdropHtml(quiz, badgeHtml) {
   `;
 }
 
+// embaralha as opcoes SO na exibicao (pra quem responde nao conseguir
+// "decorar" que a resposta certa costuma vir numa posicao fixa no JSON).
+// cada item guarda seu indice original (oi), que e o que vai no "value" do
+// radio — entao a checagem de acerto continua comparando com q.correct
+// normalmente, sem precisar saber que a ordem na tela mudou.
+function shuffledOptionsWithIndex(options) {
+  const withIndex = options.map((opt, oi) => ({ opt, oi }));
+  for (let i = withIndex.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [withIndex[i], withIndex[j]] = [withIndex[j], withIndex[i]];
+  }
+  return withIndex;
+}
+
 function bindGotoHandlers(root) {
   (root || document).querySelectorAll('[data-goto]').forEach((el) => {
     el.addEventListener('click', () => { location.hash = el.dataset.goto; });
@@ -390,7 +404,7 @@ async function loadQuizTake(quizId) {
   container.innerHTML = quiz.questions.map((q, qi) => `
     <div class="question-block">
       <h3>${qi + 1}. ${escapeHtml(q.text)}</h3>
-      ${q.options.map((opt, oi) => `
+      ${shuffledOptionsWithIndex(q.options).map(({ opt, oi }) => `
         <label class="option-row">
           <input type="radio" name="q_${qi}" value="${oi}" required>
           <span>${escapeHtml(opt)}</span>
@@ -543,7 +557,6 @@ function renderRankingTable(ranking) {
       <td>${i + 1}</td>
       <td><span class="dn-full">${escapeHtml(r.displayName)}</span><span class="dn-short">${escapeHtml(firstName)}</span></td>
       <td>${r.quizzes}</td>
-      <td>${r.totalQuestions}</td>
       <td>${r.totalCorrect}</td>
       <td>${r.average}%</td>
     </tr>
