@@ -175,17 +175,15 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   gap: 14px;
   overflow-x: auto;
   /* "proximity" em vez de "mandatory": o mandatory as vezes brigava com a
-     centralizacao feita via JS (setas, bolinhas, arraste) perto das pontas
-     do carrossel, deixando o primeiro poster praticamente impossivel de
-     selecionar. A centralizacao precisa continua garantida via JS. */
+     centralizacao feita via JS (setas, bolinhas), deixando pôsteres perto
+     das pontas dificeis de alcançar. A centralizacao precisa continua
+     garantida via JS. */
   scroll-snap-type: x proximity;
   scroll-behavior: smooth;
   padding: 10px 32vw 16px;
   margin: 0 auto;
-  cursor: grab;
   outline: none;
 }
-.carousel:active, .carousel.dragging { cursor: grabbing; scroll-snap-type: none; scroll-behavior: auto; }
 .carousel::-webkit-scrollbar { display: none; }
 .carousel { scrollbar-width: none; -ms-overflow-style: none; }
 
