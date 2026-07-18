@@ -17,10 +17,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
-      // cada usuario so pode alterar o proprio displayName; username e isAdmin
+      // qualquer usuario pode alterar o proprio displayName; admin pode alterar
+      // o displayName de qualquer pessoa (pra corrigir nomes do grupo). em
+      // ambos os casos so o campo displayName pode mudar — username e isAdmin
       // continuam so editaveis manualmente pelo Firebase Console
-      allow update: if isSignedIn() && request.auth.uid == userId &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName']);
+      allow update: if isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName']) &&
+        (request.auth.uid == userId || isAdmin());
       allow delete: if false;
     }
 

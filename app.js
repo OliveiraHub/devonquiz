@@ -632,7 +632,59 @@ async function loadAdmin() {
   setError('admin-error', null);
   setSuccess('admin-success', null);
   cancelEditQuiz();
-  await renderAdminQuizList();
+  await Promise.all([renderAdminQuizList(), renderAdminUserList()]);
+}
+
+async function renderAdminUserList() {
+  const list = document.getElementById('admin-user-list');
+  list.innerHTML = '<p class="muted">Carregando...</p>';
+
+  const snap = await db.collection('users').orderBy('username').get();
+  const users = snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+  if (users.length === 0) {
+    list.innerHTML = '<p class="muted">Nenhum usuário cadastrado ainda.</p>';
+    return;
+  }
+
+  list.innerHTML = users.map((u) => `
+    <div class="quiz-list-item">
+      <div class="info">
+        <strong>${escapeHtml(u.displayName || u.username)}</strong>
+        <div class="muted" style="font-size:0.85rem;">usuário: ${escapeHtml(u.username)}${u.isAdmin ? ' · admin' : ''}</div>
+      </div>
+      <div class="actions">
+        <button class="btn small secondary" data-action="edit-user" data-uid="${u.uid}">Editar nome</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('button[data-action="edit-user"]').forEach((btn) => {
+    const user = users.find((u) => u.uid === btn.dataset.uid);
+    btn.addEventListener('click', () => editUserDisplayName(user));
+  });
+}
+
+async function editUserDisplayName(user) {
+  const current = user.displayName || user.username;
+  const next = prompt(`Novo nome de exibição pra "${user.username}":`, current);
+  if (next === null) return; // cancelado
+  const trimmed = next.trim();
+  if (!trimmed) {
+    alert('O nome de exibição não pode ficar vazio.');
+    return;
+  }
+  if (trimmed === current) return;
+  try {
+    await db.collection('users').doc(user.uid).update({ displayName: trimmed });
+    if (user.uid === currentUser.uid) {
+      currentUserDoc.displayName = trimmed;
+      renderNav();
+    }
+    await renderAdminUserList();
+  } catch (err) {
+    console.error(err);
+    alert('Não foi possível salvar o novo nome. Tente novamente.');
+  }
 }
 
 async function renderAdminQuizList() {
