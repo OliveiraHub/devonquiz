@@ -153,7 +153,6 @@ function renderCarouselCardHtml(quiz, isCurrent, target) {
   const overlay = `
     <div class="poster-overlay">
       <div class="title">${escapeHtml(quiz.title)}</div>
-      ${isCurrent ? `<div class="theme">${escapeHtml(quiz.theme)}</div>` : ''}
     </div>
   `;
   return `<div class="carousel-card ${isCurrent ? 'current' : 'closed'}" style="${style}" data-goto="${target}">${badge}${overlay}</div>`;
@@ -350,24 +349,33 @@ async function loadDashboard() {
     return;
   }
 
-  const openQuiz = quizzes.find((q) => q.status === 'open');
-  const myResult = openQuiz ? await fetchUserResult(openQuiz.id, currentUser.uid) : null;
+  // cinza (fechado) e so pra quiz com status !== 'open' — antes isso so olhava
+  // pro PRIMEIRO quiz aberto encontrado, entao se por algum motivo existisse
+  // mais de um quiz aberto ao mesmo tempo, os outros ficavam cinza por engano.
+  const openQuizzes = quizzes.filter((q) => q.status === 'open');
+  const resultsByQuizId = new Map(
+    await Promise.all(openQuizzes.map(async (q) => [q.id, await fetchUserResult(q.id, currentUser.uid)]))
+  );
   const ordered = [...quizzes].reverse(); // mais antigo -> mais novo, pro carrossel ler como linha do tempo
 
   const cardsHtml = ordered.map((q) => {
-    const isCurrent = !!openQuiz && q.id === openQuiz.id;
-    const target = isCurrent
-      ? (myResult ? `#/quiz/${q.id}/resultado` : `#/quiz/${q.id}`)
+    const isOpen = q.status === 'open';
+    const target = isOpen
+      ? (resultsByQuizId.get(q.id) ? `#/quiz/${q.id}/resultado` : `#/quiz/${q.id}`)
       : `#/quiz/${q.id}/resultado`;
-    return renderCarouselCardHtml(q, isCurrent, target);
+    return renderCarouselCardHtml(q, isOpen, target);
   }).join('');
 
-  const captionHtml = openQuiz
+  const captionHtml = openQuizzes.length > 0
     ? ''
     : `<p class="muted" style="text-align:center; margin-top:10px;">Nenhum quiz aberto no momento.</p>`;
 
   slot.innerHTML = `
-    <div class="carousel-wrap"><div class="carousel" id="dashboard-carousel">${cardsHtml}</div></div>
+    <div class="carousel-wrap">
+      <button type="button" class="carousel-nav prev" id="carousel-prev" aria-label="Anterior">‹</button>
+      <div class="carousel" id="dashboard-carousel">${cardsHtml}</div>
+      <button type="button" class="carousel-nav next" id="carousel-next" aria-label="Próximo">›</button>
+    </div>
     ${captionHtml}
   `;
 
@@ -376,6 +384,19 @@ async function loadDashboard() {
   const carouselEl = document.getElementById('dashboard-carousel');
   const currentEl = carouselEl.querySelector('.carousel-card.current') || carouselEl.lastElementChild;
   if (currentEl) currentEl.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'auto' });
+
+  const prevBtn = document.getElementById('carousel-prev');
+  const nextBtn = document.getElementById('carousel-next');
+  const scrollStep = () => Math.max(200, carouselEl.clientWidth * 0.6);
+  prevBtn.addEventListener('click', () => carouselEl.scrollBy({ left: -scrollStep(), behavior: 'smooth' }));
+  nextBtn.addEventListener('click', () => carouselEl.scrollBy({ left: scrollStep(), behavior: 'smooth' }));
+  const updateNavVisibility = () => {
+    const scrollable = carouselEl.scrollWidth > carouselEl.clientWidth + 4;
+    prevBtn.classList.toggle('hidden', !scrollable);
+    nextBtn.classList.toggle('hidden', !scrollable);
+  };
+  updateNavVisibility();
+  window.addEventListener('resize', updateNavVisibility);
 }
 
 // ---------- Responder quiz ----------

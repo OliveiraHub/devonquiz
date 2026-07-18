@@ -141,7 +141,32 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   margin: 18px 0 26px;
 }
 
-.carousel-wrap { margin: 14px 0 4px; }
+.carousel-wrap { position: relative; margin: 14px 0 4px; }
+
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(11,11,11,0.75);
+  color: var(--text);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.carousel-nav:hover { background: var(--red); border-color: var(--red); }
+.carousel-nav.prev { left: 4px; }
+.carousel-nav.next { right: 4px; }
+@media (max-width: 600px) {
+  .carousel-nav { width: 30px; height: 30px; font-size: 1.2rem; }
+}
 
 .carousel {
   display: flex;
