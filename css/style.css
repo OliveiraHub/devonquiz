@@ -228,7 +228,20 @@ table.ranking th, table.ranking td { text-align: left; padding: 11px 8px; border
 table.ranking th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.4px; }
 table.ranking tr:first-child td { color: var(--red); font-weight: 700; }
 
-.theme-filter { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.theme-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.theme-tab {
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.theme-tab:hover { border-color: var(--red); color: var(--text); }
+.theme-tab.active { background: var(--red); color: #fff; border-color: var(--red); }
 
 .error-msg { background: rgba(229,9,20,0.14); border: 1px solid var(--red); color: #ffb3b8; padding: 11px 14px; border-radius: var(--radius); margin-bottom: 16px; font-size: 0.9rem; }
 .success-msg { background: rgba(70,211,105,0.14); border: 1px solid var(--green); color: #b6f0c5; padding: 11px 14px; border-radius: var(--radius); margin-bottom: 16px; font-size: 0.9rem; }
