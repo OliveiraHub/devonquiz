@@ -231,7 +231,9 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   display: flex;
   align-items: flex-end;
   background-size: cover;
-  background-position: center;
+  /* alinha o topo da imagem ao topo do banner: o corte (quando a imagem
+     nao cabe toda) fica so na parte de baixo, nunca cortando o topo */
+  background-position: center top;
 }
 .backdrop::before {
   content: "";
@@ -256,6 +258,24 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
 
 .score-hero { text-align: center; padding: 24px 0 8px; }
 .score-hero .pct { font-family: "Anton", sans-serif; font-size: 3.4rem; color: var(--red); line-height: 1; }
+
+.movie-quote {
+  max-width: 460px;
+  margin: 18px auto 0;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.movie-quote-source {
+  display: block;
+  margin-top: 6px;
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
 
 table.ranking { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 table.ranking th, table.ranking td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--border); }

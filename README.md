@@ -110,6 +110,13 @@ Formato esperado do JSON:
   "title": "Tarantino",
   "imageUrl": "https://exemplo.com/capa-tarantino.jpg",
   "backdropUrl": "https://exemplo.com/banner-tarantino.jpg",
+  "quotes": [
+    "Frase 1 de algum filme do Tarantino",
+    "Frase 2",
+    "Frase 3",
+    "Frase 4",
+    "Frase 5"
+  ],
   "questions": [
     {
       "text": "Qual filme tem a cena da dança do twist?",
@@ -129,7 +136,10 @@ pra uma imagem horizontal (paisagem), usada só no banner das telas de responder
 como o pôster é vertical, ele fica cortado quando esticado num banner horizontal; se quiser
 evitar isso, passe uma imagem horizontal própria em `backdropUrl`. Se não passar nenhuma das
 duas, o app gera automaticamente uma capa colorida com o nome do tema — não fica sem capa
-nenhuma.
+nenhuma. `quotes` também é opcional: uma lista de frases (ideal 5) relacionadas ao tema do
+quiz. Quando cada pessoa vê o resultado, aparece uma dessas frases (sempre a mesma pra ela
+naquele quiz, mas pode variar entre pessoas diferentes). Se não passar `quotes`, o app usa
+uma lista genérica de frases famosas de cinema.
 
 Dica pra achar um link de imagem que funcione: peça pro Claude buscar (ele te dá a URL
 direta de uma imagem, geralmente do Wikimedia Commons, que pode ser usada assim sem

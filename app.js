@@ -86,6 +86,43 @@ function posterGradient(seedStr) {
   return POSTER_GRADIENTS[idx];
 }
 
+// ---------- Frase de filme (aparece na tela de resultado) ----------
+
+const MOVIE_QUOTES = [
+  { quote: 'A vida encontra um caminho.', movie: 'Jurassic Park' },
+  { quote: 'Vamos precisar de um barco maior.', movie: 'Tubarão' },
+  { quote: 'E.T. liga pra casa.', movie: 'E.T. - O Extraterrestre' },
+  { quote: 'Estrada? Aonde vamos não precisamos de estradas.', movie: 'De Volta para o Futuro' },
+  { quote: 'Vou fazer a ele uma oferta que não poderá recusar.', movie: 'O Poderoso Chefão' },
+  { quote: 'Que a Força esteja com você.', movie: 'Star Wars' },
+  { quote: 'Eu voltarei.', movie: 'O Exterminador do Futuro' },
+  { quote: 'A vida é como uma caixa de chocolates. Você nunca sabe o que vai encontrar.', movie: 'Forrest Gump - O Contador de Histórias' },
+  { quote: 'A primeira regra é: você não fala sobre isso.', movie: 'Clube da Luta' },
+  { quote: 'Eu sou o rei do mundo!', movie: 'Titanic' },
+  { quote: 'Não existe colher.', movie: 'Matrix' },
+  { quote: 'Hakuna Matata.', movie: 'O Rei Leão' },
+  { quote: 'Ou você morre herói, ou vive o suficiente para se ver virar vilão.', movie: 'Batman - O Cavaleiro das Trevas' },
+  { quote: 'Ao meu sinal, soltem a fúria.', movie: 'Gladiador' },
+  { quote: 'O amor é a única coisa que transcende o tempo e o espaço.', movie: 'Interestelar' },
+  { quote: 'Sempre.', movie: 'Harry Potter e as Relíquias da Morte' },
+];
+
+function pickQuote(seedStr) {
+  const idx = hashString(String(seedStr || 'x')) % MOVIE_QUOTES.length;
+  return MOVIE_QUOTES[idx];
+}
+
+// se o quiz tiver suas proprias frases (campo "quotes" no JSON), usa uma
+// delas — cada uma so com o texto, sem atribuicao de filme. Senao, cai na
+// lista generica de frases de cinema acima.
+function pickResultQuote(quiz, seedStr) {
+  if (Array.isArray(quiz.quotes) && quiz.quotes.length > 0) {
+    const idx = hashString(String(seedStr || 'x')) % quiz.quotes.length;
+    return { quote: quiz.quotes[idx], movie: null };
+  }
+  return pickQuote(seedStr);
+}
+
 // remove caracteres que quebrariam a sintaxe de url("...") em CSS
 function safeCssUrl(url) {
   return String(url).replace(/["'()\\]/g, '');
@@ -463,10 +500,13 @@ async function loadResult(quizId) {
     return `<div class="question-block"><h3>${qi + 1}. ${escapeHtml(q.text)}</h3>${optsHtml}</div>`;
   }).join('');
 
+  const quote = pickResultQuote(quiz, `${quizId}_${currentUser.uid}`);
+
   content.innerHTML = `
     <div class="card score-hero">
       <div class="pct">${myResult.percentage}%</div>
       <p class="muted">${myResult.correctCount} de ${myResult.total} corretas</p>
+      <p class="movie-quote">"${escapeHtml(quote.quote)}"${quote.movie ? `<span class="movie-quote-source">${escapeHtml(quote.movie)}</span>` : ''}</p>
     </div>
     <div class="card">
       <h2>Gabarito</h2>
@@ -640,6 +680,7 @@ function startEditQuiz(quiz) {
   const payload = { theme: quiz.theme, title: quiz.title, questions: quiz.questions };
   if (quiz.imageUrl) payload.imageUrl = quiz.imageUrl;
   if (quiz.backdropUrl) payload.backdropUrl = quiz.backdropUrl;
+  if (quiz.quotes && quiz.quotes.length) payload.quotes = quiz.quotes;
 
   document.getElementById('admin-json').value = JSON.stringify(payload, null, 2);
   document.getElementById('admin-form-title').textContent = `Editando: ${quiz.title}`;
@@ -720,6 +761,12 @@ document.getElementById('admin-import-form').addEventListener('submit', async (e
     setError('admin-error', '"backdropUrl" precisa ser um texto (link da imagem) ou ser omitido.');
     return;
   }
+  if (data.quotes !== undefined) {
+    if (!Array.isArray(data.quotes) || data.quotes.some((q) => typeof q !== 'string' || !q.trim())) {
+      setError('admin-error', '"quotes" precisa ser uma lista de textos (frases de filme) ou ser omitido.');
+      return;
+    }
+  }
   for (let i = 0; i < data.questions.length; i++) {
     const q = data.questions[i];
     if (!q.text || !Array.isArray(q.options) || q.options.length < 2) {
@@ -743,6 +790,7 @@ document.getElementById('admin-import-form').addEventListener('submit', async (e
         title: data.title,
         imageUrl: data.imageUrl || null,
         backdropUrl: data.backdropUrl || null,
+        quotes: data.quotes || [],
         questions: data.questions.map((q) => ({ text: q.text, options: q.options, correct: q.correct })),
       });
       setSuccess('admin-success', 'Quiz atualizado com sucesso!');
@@ -763,6 +811,7 @@ document.getElementById('admin-import-form').addEventListener('submit', async (e
         title: data.title,
         imageUrl: data.imageUrl || null,
         backdropUrl: data.backdropUrl || null,
+        quotes: data.quotes || [],
         status: 'open',
         questions: data.questions.map((q) => ({ text: q.text, options: q.options, correct: q.correct })),
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
