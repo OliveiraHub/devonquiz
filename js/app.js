@@ -132,7 +132,7 @@ function renderBackdropHtml(quiz, badgeHtml) {
       <div class="backdrop-content">
         ${badgeHtml || ''}
         <h1>${escapeHtml(quiz.title)}</h1>
-        <p class="muted">Tema: ${escapeHtml(quiz.theme)}</p>
+        <p class="muted">${escapeHtml(quiz.theme)}</p>
       </div>
     </div>
   `;
@@ -291,7 +291,7 @@ async function loadDashboard() {
     captionHtml = `
       <div class="carousel-caption">
         <h2 class="hero-title">${escapeHtml(openQuiz.title)}</h2>
-        <p class="hero-theme">Tema: ${escapeHtml(openQuiz.theme)}</p>
+        <p class="hero-theme">${escapeHtml(openQuiz.theme)}</p>
         <div class="hero-actions">${actionHtml}</div>
       </div>
     `;
@@ -520,7 +520,7 @@ function renderThemeRanking() {
   const filtered = rankingRowsCache.filter((r) => r.theme === theme);
   const ranking = buildRanking(filtered);
   resultDiv.innerHTML = `
-    <h3>Tema: ${escapeHtml(theme)}</h3>
+    <h3>${escapeHtml(theme)}</h3>
     <table class="ranking">
       <thead><tr><th>#</th><th>Jogador</th><th>Quizzes</th><th>Média</th></tr></thead>
       <tbody>
@@ -571,7 +571,7 @@ async function renderAdminQuizList() {
         <strong>${escapeHtml(q.title)}</strong>
         <span class="badge ${q.status === 'open' ? 'open' : 'closed'}">${q.status === 'open' ? 'ABERTO' : 'ENCERRADO'}</span>
         <div class="muted" style="font-size:0.85rem;">
-          Tema: ${escapeHtml(q.theme)} · ${q.questions.length} perguntas · ${q.respondents} responderam
+          ${escapeHtml(q.theme)} · ${q.questions.length} perguntas · ${q.respondents} responderam
         </div>
       </div>
       <div class="actions">
