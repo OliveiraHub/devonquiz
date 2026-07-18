@@ -103,27 +103,23 @@ function posterBackgroundInline(quiz) {
 
 // thumbnail pequena (lista do admin)
 function renderThumbHtml(quiz) {
-  const hasImage = !!quiz.imageUrl;
   const style = posterBackgroundInline(quiz);
-  const inner = hasImage ? '' : `<div class="poster-icon">🎬</div>`;
-  return `<div class="thumb" style="${style}">${inner}</div>`;
+  return `<div class="thumb" style="${style}"></div>`;
 }
 
 // card do carrossel do dashboard: o quiz aberto vem colorido e maior (current),
 // os encerrados vem em preto-e-branco e menores (closed). Titulo (e tema, se
 // for o atual) ficam embutidos na parte de baixo do proprio poster.
 function renderCarouselCardHtml(quiz, isCurrent, target) {
-  const hasImage = !!quiz.imageUrl;
   const style = posterBackgroundInline(quiz);
   const badge = isCurrent ? '<span class="badge open">ABERTO</span>' : '';
-  const iconHtml = hasImage ? '' : `<div class="poster-icon">🎬</div>`;
   const overlay = `
     <div class="poster-overlay">
       <div class="title">${escapeHtml(quiz.title)}</div>
       ${isCurrent ? `<div class="theme">${escapeHtml(quiz.theme)}</div>` : ''}
     </div>
   `;
-  return `<div class="carousel-card ${isCurrent ? 'current' : 'closed'}" style="${style}" data-goto="${target}">${badge}${iconHtml}${overlay}</div>`;
+  return `<div class="carousel-card ${isCurrent ? 'current' : 'closed'}" style="${style}" data-goto="${target}">${badge}${overlay}</div>`;
 }
 
 // banner menor (topo das telas de responder/resultado)
@@ -170,7 +166,7 @@ function renderNav() {
       <a href="#/ranking">Ranking</a>
       ${currentUserDoc.isAdmin ? '<a href="#/admin">Admin</a>' : ''}
       <span class="muted">|</span>
-      <span class="muted">${escapeHtml(currentUserDoc.username)}</span>
+      <span class="muted">${escapeHtml(currentUserDoc.displayName || currentUserDoc.username)}</span>
       <button class="linklike" id="logout-btn">Sair</button>
     `;
     document.getElementById('logout-btn').addEventListener('click', () => auth.signOut());
@@ -199,6 +195,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   e.preventDefault();
   setError('register-error', null);
   const username = document.getElementById('register-username').value.trim();
+  const displayName = document.getElementById('register-displayname').value.trim();
   const password = document.getElementById('register-password').value;
   const confirm = document.getElementById('register-confirm').value;
 
@@ -219,6 +216,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const cred = await auth.createUserWithEmailAndPassword(usernameToEmail(username), password);
     await db.collection('users').doc(cred.user.uid).set({
       username,
+      displayName: displayName || username,
       isAdmin: false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
@@ -262,7 +260,7 @@ async function fetchUserResult(quizId, uid) {
 // ---------- Dashboard ----------
 
 async function loadDashboard() {
-  document.getElementById('dashboard-greeting').textContent = `Olá, ${currentUserDoc.username} 👋`;
+  document.getElementById('dashboard-greeting').textContent = `Olá, ${currentUserDoc.displayName || currentUserDoc.username}`;
 
   const slot = document.getElementById('dashboard-carousel-slot');
   slot.innerHTML = '<p class="muted">Carregando...</p>';
@@ -364,6 +362,7 @@ async function loadQuizTake(quizId) {
     try {
       await db.collection('quizzes').doc(quizId).collection('results').doc(currentUser.uid).set({
         username: currentUserDoc.username,
+        displayName: currentUserDoc.displayName || currentUserDoc.username,
         theme: quiz.theme,
         quizTitle: quiz.title,
         chosen,
@@ -416,7 +415,7 @@ async function loadResult(quizId) {
       return `
         <div class="option-row ${cls}">
           <span>${escapeHtml(opt)}</span>
-          ${oi === q.correct ? '<span class="muted" style="margin-left:auto;">✓ correta</span>' : ''}
+          ${oi === q.correct ? '<span class="muted" style="margin-left:auto;">correta</span>' : ''}
           ${oi !== q.correct && oi === userOptIdx ? '<span class="muted" style="margin-left:auto;">sua resposta</span>' : ''}
         </div>
       `;
@@ -442,7 +441,11 @@ function buildRanking(rows) {
   const byUser = new Map();
   rows.forEach((r) => {
     if (!byUser.has(r.username)) {
-      byUser.set(r.username, { username: r.username, quizzes: 0, sumPct: 0, totalQuestions: 0, totalCorrect: 0 });
+      byUser.set(r.username, {
+        username: r.username,
+        displayName: r.displayName || r.username,
+        quizzes: 0, sumPct: 0, totalQuestions: 0, totalCorrect: 0,
+      });
     }
     const entry = byUser.get(r.username);
     entry.quizzes += 1;
@@ -452,6 +455,7 @@ function buildRanking(rows) {
   });
   const ranking = Array.from(byUser.values()).map((e) => ({
     username: e.username,
+    displayName: e.displayName,
     quizzes: e.quizzes,
     totalQuestions: e.totalQuestions,
     totalCorrect: e.totalCorrect,
@@ -466,7 +470,7 @@ function renderRankingTable(ranking) {
   body.innerHTML = ranking.map((r, i) => `
     <tr>
       <td>${i + 1}</td>
-      <td>${escapeHtml(r.username)}</td>
+      <td>${escapeHtml(r.displayName)}</td>
       <td>${r.quizzes}</td>
       <td>${r.totalQuestions}</td>
       <td>${r.totalCorrect}</td>
