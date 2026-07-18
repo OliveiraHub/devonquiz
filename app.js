@@ -370,12 +370,15 @@ async function loadDashboard() {
     ? ''
     : `<p class="muted" style="text-align:center; margin-top:10px;">Nenhum quiz aberto no momento.</p>`;
 
+  const dotsHtml = ordered.map((_, i) => `<button type="button" class="carousel-dot" data-idx="${i}" aria-label="Ir para pôster ${i + 1}"></button>`).join('');
+
   slot.innerHTML = `
     <div class="carousel-wrap">
       <button type="button" class="carousel-nav prev" id="carousel-prev" aria-label="Anterior">‹</button>
       <div class="carousel" id="dashboard-carousel">${cardsHtml}</div>
       <button type="button" class="carousel-nav next" id="carousel-next" aria-label="Próximo">›</button>
     </div>
+    <div class="carousel-dots" id="carousel-dots">${dotsHtml}</div>
     ${captionHtml}
   `;
 
@@ -387,9 +390,86 @@ async function loadDashboard() {
 
   const prevBtn = document.getElementById('carousel-prev');
   const nextBtn = document.getElementById('carousel-next');
-  const scrollStep = () => Math.max(200, carouselEl.clientWidth * 0.6);
-  prevBtn.addEventListener('click', () => carouselEl.scrollBy({ left: -scrollStep(), behavior: 'smooth' }));
-  nextBtn.addEventListener('click', () => carouselEl.scrollBy({ left: scrollStep(), behavior: 'smooth' }));
+
+  // acha o card mais proximo do centro do carrossel agora — usado pra saber
+  // de onde "sair" quando a seta e clicada, em vez de rolar um numero fixo
+  // de pixels (que deixava os cards cortados, fora do centro).
+  function centeredCard() {
+    const cards = Array.from(carouselEl.children);
+    const targetCenter = carouselEl.scrollLeft + carouselEl.clientWidth / 2;
+    return cards.reduce((closest, card) => {
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const closestCenter = closest.offsetLeft + closest.offsetWidth / 2;
+      return Math.abs(cardCenter - targetCenter) < Math.abs(closestCenter - targetCenter) ? card : closest;
+    }, cards[0]);
+  }
+
+  // move exatamente um card por vez e sempre centraliza ele — cada poster
+  // "tem sua vez" no centro, em vez de rolar uma distancia arbitraria.
+  function goToAdjacentCard(direction) {
+    const cards = Array.from(carouselEl.children);
+    const idx = cards.indexOf(centeredCard());
+    const target = cards[Math.min(Math.max(idx + direction, 0), cards.length - 1)];
+    if (target) target.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }
+
+  prevBtn.addEventListener('click', () => goToAdjacentCard(-1));
+  nextBtn.addEventListener('click', () => goToAdjacentCard(1));
+
+  // destaque dinamico: o poster mais perto do centro ganha uma classe
+  // "in-focus" (fica maior/colorido) — cada imagem "tem sua vez" enquanto
+  // o carrossel rola, nao so quando esta parado. as bolinhas embaixo
+  // acompanham junto, marcando a posicao atual.
+  const dotsEl = document.getElementById('carousel-dots');
+  const dotButtons = Array.from(dotsEl.children);
+  dotButtons.forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      const target = carouselEl.children[i];
+      if (target) target.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    });
+  });
+
+  let focusPending = false;
+  function updateInFocus() {
+    if (focusPending) return;
+    focusPending = true;
+    requestAnimationFrame(() => {
+      focusPending = false;
+      const cards = Array.from(carouselEl.children);
+      const target = centeredCard();
+      const idx = cards.indexOf(target);
+      cards.forEach((card) => card.classList.toggle('in-focus', card === target));
+      dotButtons.forEach((dot, i) => dot.classList.toggle('active', i === idx));
+    });
+  }
+  carouselEl.addEventListener('scroll', updateInFocus);
+  updateInFocus();
+
+  // navegacao por teclado quando o carrossel esta em foco
+  carouselEl.setAttribute('tabindex', '0');
+  carouselEl.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goToAdjacentCard(-1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); goToAdjacentCard(1); }
+  });
+
+  // arrastar com o mouse no desktop (touch ja rola nativamente) — deixa o
+  // movimento mais fluido pra quem nao tem trackpad/tela sensivel ao toque
+  let dragState = null;
+  carouselEl.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') return; // toque ja tem scroll nativo
+    dragState = { startX: e.clientX, startScrollLeft: carouselEl.scrollLeft };
+    carouselEl.classList.add('dragging');
+    carouselEl.setPointerCapture(e.pointerId);
+  });
+  carouselEl.addEventListener('pointermove', (e) => {
+    if (!dragState) return;
+    carouselEl.scrollLeft = dragState.startScrollLeft - (e.clientX - dragState.startX);
+  });
+  const endDrag = () => { dragState = null; carouselEl.classList.remove('dragging'); };
+  carouselEl.addEventListener('pointerup', endDrag);
+  carouselEl.addEventListener('pointercancel', endDrag);
+  carouselEl.addEventListener('pointerleave', endDrag);
+
   const updateNavVisibility = () => {
     const scrollable = carouselEl.scrollWidth > carouselEl.clientWidth + 4;
     prevBtn.classList.toggle('hidden', !scrollable);

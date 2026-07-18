@@ -174,10 +174,14 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   justify-content: center;
   gap: 14px;
   overflow-x: auto;
-  scroll-snap-type: x proximity;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
   padding: 10px 32vw 16px;
   margin: 0 auto;
+  cursor: grab;
+  outline: none;
 }
+.carousel:active, .carousel.dragging { cursor: grabbing; scroll-snap-type: none; scroll-behavior: auto; }
 .carousel::-webkit-scrollbar { display: none; }
 .carousel { scrollbar-width: none; -ms-overflow-style: none; }
 
@@ -191,7 +195,7 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   cursor: pointer;
   scroll-snap-align: center;
   border: 1px solid var(--border);
-  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease;
   box-shadow: 0 6px 16px rgba(0,0,0,0.4);
 }
 
@@ -201,10 +205,11 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   filter: grayscale(1) brightness(0.7);
   opacity: 0.85;
 }
-.carousel-card.closed:hover {
+.carousel-card.closed:hover,
+.carousel-card.closed.in-focus {
   filter: grayscale(0) brightness(1);
   opacity: 1;
-  transform: translateY(-4px);
+  transform: translateY(-4px) scale(1.06);
   box-shadow: 0 14px 28px rgba(0,0,0,0.5);
   z-index: 2;
 }
@@ -214,7 +219,25 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   aspect-ratio: 2 / 3;
   box-shadow: 0 16px 36px rgba(0,0,0,0.55);
 }
-.carousel-card.current:hover { transform: translateY(-4px); }
+.carousel-card.current:hover,
+.carousel-card.current.in-focus {
+  transform: translateY(-4px) scale(1.03);
+  z-index: 2;
+}
+
+.carousel-dots { display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; margin: 10px 0 0; }
+.carousel-dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+.carousel-dot:hover { background: rgba(255,255,255,0.5); }
+.carousel-dot.active { background: var(--red); transform: scale(1.5); }
 
 .carousel-card .badge { position: absolute; top: 8px; left: 8px; z-index: 3; }
 
