@@ -161,12 +161,16 @@ function authErrorMessage(err) {
 function renderNav() {
   const nav = document.getElementById('nav-links');
   if (currentUser && currentUserDoc) {
+    const fullName = currentUserDoc.displayName || currentUserDoc.username;
+    const firstName = fullName.trim().split(/\s+/)[0];
     nav.innerHTML = `
       <a href="#/">Home</a>
       <a href="#/ranking">Ranking</a>
       ${currentUserDoc.isAdmin ? '<a href="#/admin">Admin</a>' : ''}
       <span class="muted">|</span>
-      <button class="linklike" id="nav-displayname-btn" title="Clique para mudar seu nome de exibição">${escapeHtml(currentUserDoc.displayName || currentUserDoc.username)}</button>
+      <button class="linklike" id="nav-displayname-btn" title="Clique para mudar seu nome de exibição">
+        <span class="dn-full">${escapeHtml(fullName)}</span><span class="dn-short">${escapeHtml(firstName)}</span>
+      </button>
       <button class="linklike" id="logout-btn">Sair</button>
     `;
     document.getElementById('nav-displayname-btn').addEventListener('click', openEditDisplayName);
