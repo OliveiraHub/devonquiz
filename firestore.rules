@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Perfil de cada usuario (username, isAdmin)
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      // isAdmin so pode ser alterado manualmente pelo Firebase Console
+      allow update, delete: if false;
+    }
+
+    // Quizzes e as respostas de cada usuario
+    match /quizzes/{quizId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+
+      match /results/{userId} {
+        allow read: if isSignedIn();
+        // cada usuario so pode criar (uma unica vez) o proprio resultado,
+        // e somente enquanto o quiz estiver aberto
+        allow create: if isSignedIn() && request.auth.uid == userId &&
+          get(/databases/$(database)/documents/quizzes/$(quizId)).data.status == 'open';
+        // resultado enviado nao pode ser alterado (evita fraude), so admin corrige/apaga
+        allow update, delete: if isAdmin();
+      }
+    }
+  }
+}
