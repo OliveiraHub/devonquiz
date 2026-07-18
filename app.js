@@ -448,6 +448,7 @@ async function loadQuizTake(quizId) {
 // ---------- Resultado individual ----------
 
 async function loadResult(quizId) {
+  window.scrollTo({ top: 0, behavior: 'auto' });
   document.getElementById('result-backdrop-slot').innerHTML = '';
   const quiz = await fetchQuiz(quizId);
   if (!quiz) {

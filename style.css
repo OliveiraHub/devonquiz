@@ -255,10 +255,17 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   letter-spacing: 0.6px;
 }
 
+.ranking-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -20px; padding: 0 20px; }
 table.ranking { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-table.ranking th, table.ranking td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--border); }
+table.ranking th, table.ranking td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 table.ranking th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.4px; }
 table.ranking tr:first-child td { color: var(--red); font-weight: 700; }
+
+@media (max-width: 600px) {
+  .ranking-table-wrap { margin: 0 -20px; padding: 0 20px; }
+  table.ranking { font-size: 0.85rem; }
+  table.ranking th, table.ranking td { padding: 9px 6px; }
+}
 
 .theme-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
 .theme-tab {
