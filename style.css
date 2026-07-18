@@ -171,7 +171,11 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
 .carousel {
   display: flex;
   align-items: flex-end;
-  justify-content: center;
+  /* "safe center": centraliza quando cabe tudo, mas cai pro alinhamento
+     normal quando o conteudo excede o container — sem o "safe", o
+     justify-content: center puro deixa o PRIMEIRO item preso numa posicao
+     que exigiria rolagem negativa (impossivel), tornando-o inalcancavel. */
+  justify-content: safe center;
   gap: 14px;
   overflow-x: auto;
   /* "proximity" em vez de "mandatory": o mandatory as vezes brigava com a
