@@ -1,4 +1,4 @@
-// Quiz Cinema - logica do app (SPA estatica + Firebase)
+// Devon Quiz - logica do app (SPA estatica + Firebase)
 // Nenhum servidor proprio: autenticacao e dados ficam 100% no Firebase
 // (Authentication + Firestore). Veja README.md para configurar seu projeto.
 
@@ -101,16 +101,6 @@ function posterBackgroundInline(quiz) {
   return `background-image: ${posterGradient(quiz.theme || quiz.title || quiz.id)};`;
 }
 
-// card grande (fileira de pôsteres / lista de encerrados)
-function renderPosterCardHtml(quiz) {
-  const hasImage = !!quiz.imageUrl;
-  const style = posterBackgroundInline(quiz);
-  const inner = hasImage
-    ? `<div class="poster-overlay"><div class="title">${escapeHtml(quiz.title)}</div></div>`
-    : `<div class="poster-fallback"><div class="icon">🎬</div><div class="title">${escapeHtml(quiz.theme || quiz.title)}</div></div>`;
-  return `<div class="poster-card" style="${style}" data-goto="#/quiz/${quiz.id}/resultado">${inner}</div>`;
-}
-
 // thumbnail pequena (lista do admin)
 function renderThumbHtml(quiz) {
   const hasImage = !!quiz.imageUrl;
@@ -119,29 +109,19 @@ function renderThumbHtml(quiz) {
   return `<div class="thumb" style="${style}">${inner}</div>`;
 }
 
-// pôster grande vertical (hero do dashboard, quando ha quiz aberto)
-function renderHeroHtml(quiz, alreadyAnswered) {
+// card do carrossel do dashboard: o quiz aberto vem colorido e maior (current),
+// os encerrados vem em preto-e-branco e menores (closed)
+function renderCarouselCardHtml(quiz, isCurrent, target) {
   const hasImage = !!quiz.imageUrl;
   const style = posterBackgroundInline(quiz);
-  const actionHtml = alreadyAnswered
-    ? `<a href="#/quiz/${quiz.id}/resultado" class="btn secondary">Ver meu resultado</a>`
-    : `<a href="#/quiz/${quiz.id}" class="btn">▶ Responder agora</a>`;
-  const fallbackHtml = hasImage
+  const badge = isCurrent ? '<span class="badge open">ABERTO</span>' : '';
+  const fallback = hasImage
     ? ''
-    : `<div class="poster-fallback"><div class="icon">🎬</div></div>`;
-  return `
-    <div class="hero-wrap">
-      <div class="hero-poster" style="${style}">
-        <span class="badge open">ABERTO</span>
-        ${fallbackHtml}
-        <div class="hero-poster-content">
-          <h2 class="hero-title">${escapeHtml(quiz.title)}</h2>
-          <p class="hero-theme">Tema: ${escapeHtml(quiz.theme)}</p>
-        </div>
-      </div>
-      <div class="hero-actions">${actionHtml}</div>
-    </div>
-  `;
+    : `<div class="poster-fallback"><div class="icon">🎬</div><div class="title">${escapeHtml(quiz.theme || quiz.title)}</div></div>`;
+  const overlay = hasImage && !isCurrent
+    ? `<div class="poster-overlay"><div class="title">${escapeHtml(quiz.title)}</div></div>`
+    : '';
+  return `<div class="carousel-card ${isCurrent ? 'current' : 'closed'}" style="${style}" data-goto="${target}">${badge}${fallback}${overlay}</div>`;
 }
 
 // banner menor (topo das telas de responder/resultado)
@@ -282,30 +262,53 @@ async function fetchUserResult(quizId, uid) {
 async function loadDashboard() {
   document.getElementById('dashboard-greeting').textContent = `Olá, ${currentUserDoc.username} 👋`;
 
-  const heroSlot = document.getElementById('dashboard-hero-slot');
-  const rowSlot = document.getElementById('dashboard-closed-row-slot');
-  heroSlot.innerHTML = '<p class="muted">Carregando...</p>';
-  rowSlot.innerHTML = '';
+  const slot = document.getElementById('dashboard-carousel-slot');
+  slot.innerHTML = '<p class="muted">Carregando...</p>';
 
-  const quizzes = await fetchAllQuizzes();
+  const quizzes = await fetchAllQuizzes(); // mais recente primeiro
+  if (quizzes.length === 0) {
+    slot.innerHTML = `<div class="hero-empty"><p>Nenhum quiz por aqui ainda. Assim que sair um novo, ele aparece aqui.</p></div>`;
+    return;
+  }
+
   const openQuiz = quizzes.find((q) => q.status === 'open');
-  const closedQuizzes = quizzes.filter((q) => q.status === 'closed');
+  const myResult = openQuiz ? await fetchUserResult(openQuiz.id, currentUser.uid) : null;
+  const ordered = [...quizzes].reverse(); // mais antigo -> mais novo, pro carrossel ler como linha do tempo
 
+  const cardsHtml = ordered.map((q) => {
+    const isCurrent = !!openQuiz && q.id === openQuiz.id;
+    const target = isCurrent
+      ? (myResult ? `#/quiz/${q.id}/resultado` : `#/quiz/${q.id}`)
+      : `#/quiz/${q.id}/resultado`;
+    return renderCarouselCardHtml(q, isCurrent, target);
+  }).join('');
+
+  let captionHtml;
   if (openQuiz) {
-    const myResult = await fetchUserResult(openQuiz.id, currentUser.uid);
-    heroSlot.innerHTML = renderHeroHtml(openQuiz, !!myResult);
+    const actionHtml = myResult
+      ? `<a href="#/quiz/${openQuiz.id}/resultado" class="btn secondary">Ver meu resultado</a>`
+      : `<a href="#/quiz/${openQuiz.id}" class="btn">▶ Responder agora</a>`;
+    captionHtml = `
+      <div class="carousel-caption">
+        <h2 class="hero-title">${escapeHtml(openQuiz.title)}</h2>
+        <p class="hero-theme">Tema: ${escapeHtml(openQuiz.theme)}</p>
+        <div class="hero-actions">${actionHtml}</div>
+      </div>
+    `;
   } else {
-    heroSlot.innerHTML = `<div class="hero-empty"><p>Nenhum quiz aberto no momento. Assim que sair um novo, ele aparece aqui.</p></div>`;
+    captionHtml = `<p class="muted" style="text-align:center; margin-top:10px;">Nenhum quiz aberto no momento.</p>`;
   }
 
-  if (closedQuizzes.length > 0) {
-    rowSlot.innerHTML = `
-      <div class="row-title">Quizzes encerrados</div>
-      <div class="poster-row">${closedQuizzes.map(renderPosterCardHtml).join('')}</div>
-    `;
-  }
+  slot.innerHTML = `
+    <div class="carousel-wrap"><div class="carousel" id="dashboard-carousel">${cardsHtml}</div></div>
+    ${captionHtml}
+  `;
 
   bindGotoHandlers();
+
+  const carouselEl = document.getElementById('dashboard-carousel');
+  const currentEl = carouselEl.querySelector('.carousel-card.current') || carouselEl.lastElementChild;
+  if (currentEl) currentEl.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'auto' });
 }
 
 // ---------- Responder quiz ----------
