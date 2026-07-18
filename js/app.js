@@ -93,7 +93,10 @@ function safeCssUrl(url) {
 
 function posterBackgroundInline(quiz) {
   if (quiz.imageUrl) {
-    return `background-image: url("${safeCssUrl(quiz.imageUrl)}");`;
+    // aspas simples aqui de proposito: essa string vai dentro de um atributo
+    // style="..." com aspas duplas no HTML, entao nao pode usar aspas duplas
+    // dentro do url(...) — isso fechava o atributo mais cedo e corrompia a URL.
+    return `background-image: url('${safeCssUrl(quiz.imageUrl)}');`;
   }
   return `background-image: ${posterGradient(quiz.theme || quiz.title || quiz.id)};`;
 }
