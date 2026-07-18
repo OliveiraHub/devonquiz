@@ -174,7 +174,11 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
   justify-content: center;
   gap: 14px;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  /* "proximity" em vez de "mandatory": o mandatory as vezes brigava com a
+     centralizacao feita via JS (setas, bolinhas, arraste) perto das pontas
+     do carrossel, deixando o primeiro poster praticamente impossivel de
+     selecionar. A centralizacao precisa continua garantida via JS. */
+  scroll-snap-type: x proximity;
   scroll-behavior: smooth;
   padding: 10px 32vw 16px;
   margin: 0 auto;

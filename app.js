@@ -465,7 +465,16 @@ async function loadDashboard() {
     if (!dragState) return;
     carouselEl.scrollLeft = dragState.startScrollLeft - (e.clientX - dragState.startX);
   });
-  const endDrag = () => { dragState = null; carouselEl.classList.remove('dragging'); };
+  const endDrag = () => {
+    if (!dragState) return;
+    dragState = null;
+    carouselEl.classList.remove('dragging');
+    // depois de arrastar, forca centralizar no card mais proximo — sem isso
+    // o carrossel podia ficar "preso" entre dois posters (o snap do CSS nem
+    // sempre reengata sozinho), o que deixava o primeiro poster praticamente
+    // impossivel de selecionar.
+    centeredCard().scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  };
   carouselEl.addEventListener('pointerup', endDrag);
   carouselEl.addEventListener('pointercancel', endDrag);
   carouselEl.addEventListener('pointerleave', endDrag);
