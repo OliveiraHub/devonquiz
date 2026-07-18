@@ -54,8 +54,46 @@ nav.topnav .brand:hover { color: var(--red); }
 nav.topnav .links { display: flex; gap: 16px; align-items: center; font-size: 0.88rem; flex-wrap: wrap; }
 nav.topnav .links a { color: var(--text-muted); font-weight: 500; }
 nav.topnav .links a:hover { color: var(--text); }
-nav.topnav button.linklike { background: none; border: none; font-size: 0.88rem; padding: 0; font-family: inherit; color: var(--text-muted); }
+nav.topnav button.linklike { background: none; border: none; font-size: 0.88rem; padding: 0; font-family: inherit; color: var(--text-muted); cursor: pointer; }
 nav.topnav button.linklike:hover { color: var(--text); }
+
+/* nome de exibicao: versao curta (so o primeiro nome) fica escondida por
+   padrao e so aparece no celular, pra caber sem quebrar nem truncar. */
+.dn-short { display: none; }
+
+/* celular: tudo numa unica linha, sem rolagem e sem quebrar texto. a marca
+   e os links encolhem de tamanho, e o nome de exibicao mostra so o primeiro
+   nome — assim o resto do menu nunca se move nem quebra por causa dele. */
+@media (max-width: 600px) {
+  nav.topnav {
+    padding: 8px 10px;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  nav.topnav .brand {
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  nav.topnav .links {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    overflow: hidden;
+    gap: 7px;
+    font-size: 0.68rem;
+  }
+  nav.topnav .links a,
+  nav.topnav .links button.linklike,
+  nav.topnav .links > span {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .dn-full { display: none; }
+  .dn-short { display: inline; }
+}
 
 h1 {
   font-family: "Anton", sans-serif;
