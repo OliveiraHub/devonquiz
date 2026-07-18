@@ -358,7 +358,15 @@ async function loadDashboard() {
   const resultsByQuizId = new Map(
     await Promise.all(openQuizzes.map(async (q) => [q.id, await fetchUserResult(q.id, currentUser.uid)]))
   );
-  const ordered = [...quizzes].reverse(); // mais antigo -> mais novo, pro carrossel ler como linha do tempo
+
+  // encerrados sempre a esquerda, abertos sempre a direita; dentro de cada
+  // grupo, do mais antigo (esquerda) pro mais recente (direita) — assim o
+  // ultimo card do carrossel e sempre o quiz aberto mais recente, que e o
+  // selecionado por padrao ao abrir a pagina.
+  const closed = quizzes.filter((q) => q.status !== 'open'); // fetchAllQuizzes ja vem mais recente primeiro
+  const orderedClosed = [...closed].reverse();
+  const orderedOpen = [...openQuizzes].reverse();
+  const ordered = [...orderedClosed, ...orderedOpen];
 
   const cardsHtml = ordered.map((q) => {
     const isOpen = q.status === 'open';
@@ -387,7 +395,10 @@ async function loadDashboard() {
   bindGotoHandlers();
 
   const carouselEl = document.getElementById('dashboard-carousel');
-  const currentEl = carouselEl.querySelector('.carousel-card.current') || carouselEl.lastElementChild;
+  // com encerrados a esquerda e abertos a direita (mais recente por ultimo),
+  // o ultimo card do carrossel e sempre o aberto mais recente — e por isso
+  // que ele e o selecionado por padrao ao carregar a pagina.
+  const currentEl = carouselEl.lastElementChild;
   if (currentEl) currentEl.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'auto' });
 
   const prevBtn = document.getElementById('carousel-prev');
