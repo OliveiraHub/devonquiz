@@ -1,4 +1,4 @@
-# Quiz Cinema
+# Devon Quiz
 
 App de quiz de cinema para jogar com amigos: cada um cria uma conta (usuário e senha),
 responde ao quiz aberto, e dá pra ver o ranking geral e por tema depois. Não tem servidor
@@ -84,7 +84,7 @@ no navegador) ou [Vercel](https://vercel.com/new).
 ## Como criar um novo quiz
 
 1. Peça pro Claude gerar as perguntas, por exemplo:
-   > "gera 8 perguntas sobre filmes do Tarantino, em JSON pro Quiz Cinema"
+   > "gera 8 perguntas sobre filmes do Tarantino, em JSON pro Devon Quiz"
 2. Entre no app como admin, abra **Admin**, cole o JSON no campo e clique em **Criar quiz**.
    Isso encerra automaticamente qualquer quiz que ainda estivesse aberto.
 3. Quando todo mundo já tiver votado, você pode criar o próximo quiz — o anterior já fica
@@ -106,8 +106,8 @@ Formato esperado do JSON:
 
 ```json
 {
-  "theme": "Tarantino",
-  "title": "Quiz: Tarantino",
+  "theme": "Diretores",
+  "title": "Tarantino",
   "imageUrl": "https://exemplo.com/capa-tarantino.jpg",
   "questions": [
     {
@@ -119,7 +119,10 @@ Formato esperado do JSON:
 }
 ```
 
-`correct` é o índice (começando em 0) da opção certa. `imageUrl` é opcional: um link direto
+`title` é o nome que aparece grande no pôster (sem prefixo "Quiz:"). `theme` é a categoria
+usada no filtro do ranking (ex: "Diretores", "Décadas") — vale repetir o mesmo tema em vários
+quizzes pra agrupar no ranking. `correct` é o índice (começando em 0) da opção certa.
+`imageUrl` é opcional: um link direto
 pra uma imagem (a "capa" do quiz, estilo pôster de filme, mostrada no banner e no carrossel
 de quizzes encerrados). Se você não passar `imageUrl`, o app gera automaticamente uma capa
 colorida com o nome do tema — não fica sem capa nenhuma.
