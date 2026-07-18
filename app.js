@@ -149,7 +149,9 @@ function renderThumbHtml(quiz) {
 // for o atual) ficam embutidos na parte de baixo do proprio poster.
 function renderCarouselCardHtml(quiz, isCurrent, target) {
   const style = posterBackgroundInline(quiz);
-  const badge = isCurrent ? '<span class="badge open">ABERTO</span>' : '';
+  const badge = isCurrent
+    ? '<span class="badge open">ABERTO</span>'
+    : '<span class="badge closed">ENCERRADO</span>';
   const overlay = `
     <div class="poster-overlay">
       <div class="title">${escapeHtml(quiz.title)}</div>
