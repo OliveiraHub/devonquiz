@@ -43,8 +43,8 @@ nav.topnav {
   gap: 8px;
 }
 nav.topnav .brand {
-  font-family: "Bebas Neue", sans-serif;
-  font-weight: 700;
+  font-family: "Anton", sans-serif;
+  font-weight: 400;
   font-size: 1.6rem;
   color: var(--red);
   letter-spacing: 1px;
@@ -58,7 +58,8 @@ nav.topnav button.linklike { background: none; border: none; font-size: 0.88rem;
 nav.topnav button.linklike:hover { color: var(--text); }
 
 h1 {
-  font-family: "Bebas Neue", sans-serif;
+  font-family: "Anton", sans-serif;
+  font-weight: 400;
   font-size: 2rem;
   letter-spacing: 0.5px;
   margin: 20px 0 18px;
@@ -110,10 +111,12 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
 .carousel {
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   gap: 14px;
   overflow-x: auto;
   scroll-snap-type: x proximity;
   padding: 10px 32vw 16px;
+  margin: 0 auto;
 }
 .carousel::-webkit-scrollbar { display: none; }
 .carousel { scrollbar-width: none; -ms-overflow-style: none; }
@@ -157,13 +160,6 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
 
 .carousel-caption { text-align: center; padding: 12px 16px 6px; }
 .carousel-caption .hero-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-
-/* icone decorativo pra capas sem imagem (fica atras do texto, no meio do poster) */
-.poster-icon {
-  position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%);
-  font-size: 1.6rem; opacity: 0.45; z-index: 1;
-}
-.carousel-card.current .poster-icon { font-size: 2.8rem; }
 
 /* titulo + tema sempre embutidos na parte de baixo do poster */
 .poster-overlay {
@@ -221,7 +217,7 @@ form textarea { min-height: 220px; font-family: ui-monospace, Menlo, Consolas, m
 .option-row.wrong-chosen { border-color: var(--red); background: rgba(229,9,20,0.12); }
 
 .score-hero { text-align: center; padding: 24px 0 8px; }
-.score-hero .pct { font-family: "Bebas Neue", sans-serif; font-size: 3.4rem; color: var(--red); line-height: 1; }
+.score-hero .pct { font-family: "Anton", sans-serif; font-size: 3.4rem; color: var(--red); line-height: 1; }
 
 table.ranking { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 table.ranking th, table.ranking td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--border); }
@@ -252,7 +248,6 @@ table.ranking tr:first-child td { color: var(--red); font-weight: 700; }
   flex: 0 0 auto; width: 46px; height: 69px; border-radius: 4px; background-size: cover; background-position: center;
   border: 1px solid var(--border); position: relative; overflow: hidden;
 }
-.quiz-list-item .thumb .poster-icon { font-size: 1.1rem; opacity: 0.6; }
 .quiz-list-item .info { flex: 1 1 auto; min-width: 160px; }
 .quiz-list-item .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
 
